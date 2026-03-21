@@ -1,7 +1,7 @@
 {
   "name": "aicharacterchat",
   "version": "1.0.0",
-  "description": "",
+  "description": "A lightweight, self-hosted AI character chat app with SSE streaming and automated summarization.",
   "main": "dist/backend/server.js",
   "scripts": {
     "build": "tsc",
@@ -11,8 +11,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Norayr",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

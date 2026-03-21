@@ -1,57 +1,80 @@
 # AI Character Chat 🤖🎭
 
-Добро пожаловать в проект **AI Character Chat** — место, где нейронки обретают характер, а ты — собеседника, который не уснет на середине фразы. Это фулстек-приложение для ролевого общения с ИИ-персонажами, приправленное стримингом ответов и автоматической суммаризацией истории.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Fastify](https://img.shields.io/badge/Fastify-5.x-blue.svg)](https://www.fastify.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
-## 🛠 Технологический стек (то, на чем всё держится)
+**AI Character Chat** is a lightweight, self-hosted full-stack application designed for roleplaying with AI characters. It focuses on simplicity, speed, and a smooth user experience with real-time SSE streaming.
+
+> **Why this?** Because sometimes you just want to chat with a character without setting up a 2GB docker image or navigating through 50 complex configuration menus. 
+
+---
+
+## 🛠 Tech Stack
 
 ### Backend:
-- **Fastify** (Node.js + TypeScript) — потому что Express слишком медленный для настоящих дел.
-- **SQLite** — база данных для хранения истории чатов. Легкая, как перышко, надежная, как швейцарские часы.
-- **OpenRouter API** — мозг системы. Поддержка SSE (Server-Sent Events) для стриминга ответов в реальном времени.
-- **Pino** — логирование, которое приятно читать.
+- **Fastify** (Node.js + TypeScript) — High-performance, low-overhead framework.
+- **SQLite** — Lightweight local database for chat history.
+- **OpenRouter API** — The brain. Supports any model (Grok, Claude, GPT, etc.) with Server-Sent Events (SSE).
+- **Pino** — Structured logging for easy debugging.
 
 ### Frontend:
-- **jQuery** — старый добрый молоток для работы с DOM.
-- **Bootstrap 5** — чтобы интерфейс не выглядел как привет из 90-х.
-- **Marked + Highlight.js** — поддержка Markdown и подсветка синтаксиса (если вдруг захочешь пописать код с ИИ).
-- **DOMPurify** — защита от XSS, потому что безопасность превыше всего.
+- **Vanilla JavaScript / jQuery** — Keeping it simple and direct.
+- **Bootstrap 5** — Clean and responsive UI.
+- **Marked + Highlight.js** — Full Markdown support with code syntax highlighting.
+- **DOMPurify** — Essential XSS protection.
+- **Sharp** — High-performance image processing for AI input.
 
-## ✨ Основные фичи
-
-1.  **Персонажи с характером**: Система подгружает JSON-конфиги из папки `characters/`. Хочешь добавить нового героя? Просто закинь файл.
-2.  **Стриминг ответов**: Никакого долгого ожидания. Текст печатается на экране по мере генерации.
-3.  **Бесконечная память (почти)**: Чат сохраняется в SQLite. Когда история становится слишком длинной, система автоматически делает суммаризацию (сжатие) контекста, чтобы не тратить лишние токены и не ломать логику ИИ.
-4.  **Markdown из коробки**: Твой ИИ может выделять жирным, курсивом и даже присылать куски кода.
-
-## 🚀 Как запустить (если руки из нужного места)
-
-1.  **Установи зависимости**:
-    ```bash
-    npm install
-    ```
-2.  **Настрой конфиг**:
-    Создай файл `.env` в корне (или используй готовый) и укажи там свой `API_KEY` от OpenRouter.
-3.  **Запусти сервер**:
-    ```bash
-    # Для разработки (с автоперезагрузкой)
-    npm run dev
-    
-    # Обычный запуск
-    npm run start
-    ```
-4.  **Открой в браузере**:
-    Переходи по адресу `http://localhost:3000` и начинай чат.
-
-## 📂 Структура проекта
-
-- `src/backend/` — сердце сервера на Fastify.
-- `src/frontend/` — клиентская логика и стили.
-- `views/` — HTML шаблоны.
-- `/api/chat` — REST API для общения с ИИ персонажем
-- `/api/characters` — REST API для управления персонажами
-- `/chat` — веб-интерфейс чата с ИИ персонажем
-- `/characters` — веб-интерфейс управления персонажами
-- `storage/characters/` — JSON файлы с описанием персонажей (имя, промпт, первое сообщение).
-- `database.sqlite` — локальное хранилище твоих секретов (истории чатов).
 ---
-*Сделано с легким сарказмом и верой в цифровое будущее.*
+
+## ✨ Key Features
+
+1.  **Unique Personalities**: Load character configurations from JSON files (`storage/characters/`). Easily add new ones.
+2.  **Real-time Streaming**: No waiting for the full response. Text flows onto the screen as it's generated.
+3.  **Smart Context Management (Summarization)**: When the chat history gets too long, the system automatically generates a concise summary to keep the AI in focus and save on tokens.
+4.  **Markdown Support**: Full support for bold, italics, lists, and code blocks.
+5.  **Image Uploads**: Process and send images to vision-enabled models with automatic resizing.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Configure Environment
+Create a `.env` file in the root directory:
+```env
+PORT=3000
+API_URL=https://openrouter.ai/api/v1/chat/completions
+API_KEY=your_openrouter_api_key_here
+```
+
+### 3. Launch
+```bash
+# For development (with hot-reload)
+npm run dev
+
+# For production
+npm run build
+npm run start
+```
+
+### 4. Open in Browser
+Visit `http://localhost:3000` and start your conversation.
+
+---
+
+## 📂 Project Structure
+
+- `src/backend/` — Fastify server logic.
+- `src/frontend/` — Client-side scripts and styles.
+- `views/` — HTML templates.
+- `storage/characters/` — JSON character definitions.
+- `database.sqlite` — Local storage for chat logs.
+
+---
+
+*Built with a touch of sarcasm and faith in a digital future.*
