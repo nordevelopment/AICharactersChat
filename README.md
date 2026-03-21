@@ -47,15 +47,21 @@
 npm install
 ```
 
-### 2. Configure Environment
-Create a `.env` file in the root directory:
+### 2. Initial Setup
+Create the default admin user with the seeding script:
+```bash
+npm run seed
+```
+
+### 3. Configure Environment
+Create a `.env` file in the root directory (you can use `.env.example` as a template):
 ```env
 PORT=3000
 API_URL=https://openrouter.ai/api/v1/chat/completions
 API_KEY=your_openrouter_api_key_here
 ```
 
-### 3. Launch
+### 4. Launch
 ```bash
 # For development (with hot-reload)
 npm run dev
