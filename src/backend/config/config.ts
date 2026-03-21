@@ -1,0 +1,36 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config();
+
+export const config = {
+  port: parseInt(process.env.PORT || '3000', 10),
+  host: process.env.HOST || '0.0.0.0',
+  apiUrl: process.env.API_URL || '',
+  apiKey: process.env.API_KEY || '',
+  aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
+  aiTemperature: 0.7,
+  aiTopP: 0.9,
+  aiFrequencyPenalty: 0.5,
+  aiPresencePenalty: 0.5,
+  aiMaxTokens: 200,
+  aiSafePrompt: false,
+  aiProvider: {
+    sort: 'throughput'
+  },
+  aiReasoning: {
+    effort: 'none',
+    exclude: true
+  },
+  jwtSecret: process.env.JWT_SECRET || 'a-very-long-and-secure-secret-key-that-is-at-least-32-characters-long',
+  dbFile: path.join(process.cwd(), 'database.sqlite'),
+  tempImagesDir: path.join(process.cwd(), 'storage', 'temp_images'),
+  maxHistoryMessages: 20,
+  viewsRoot: path.join(process.cwd(), 'views'),
+  frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
+};
+
+// Простая проверка обязательных переменных
+if (!config.apiUrl || !config.apiKey) {
+  console.warn('[CONFIG] WARNING: API_URL or API_KEY is missing in .env');
+}

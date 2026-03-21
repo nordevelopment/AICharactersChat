@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Characters - AI Character Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css">
+    <style>
+        .character-card {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            border-color: #e94560;
+        }
+
+        .nav-link {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+        }
+
+        .btn-cyber {
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+        }
+
+        .btn-cyber:hover {
+            background: #b3364a;
+            color: white;
+        }
+
+        .form-control,
+        .form-control:focus {
+            background: #0f3460;
+            border-color: #1a1a2e;
+            color: white;
+        }
+
+        .modal-content {
+            background: #16213e;
+            color: white;
+            border: 1px solid #e94560;
+        }
+
+        .modal-header,
+        .modal-footer {
+            border-color: #0f3460;
+        }
+
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #0f3460;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h1 class="m-0">Character Management</h1>
+            <nav class="d-flex align-items-center">
+                <span id="user-display-name" class="me-3" style="font-size: 0.9rem; color: #e94560;">User</span>
+                <a href="/chat" class="nav-link me-4">← Back to Chat</a>
+                <button onclick="logout()" class="btn btn-sm btn-outline-secondary me-4">Logout</button>
+                <button class="btn btn-cyber" data-bs-toggle="modal" data-bs-target="#characterModal"
+                    onclick="prepareAdd()">+ Add New Character</button>
+            </nav>
+        </div>
+
+        <div id="character-grid" class="row">
+            <!-- Characters will be loaded here -->
+        </div>
+
+        <div class="mt-5 pt-5 border-top border-secondary">
+            <h2 class="mb-4">Global History Management</h2>
+            <div class="card bg-dark border-danger">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">Danger Zone</h5>
+                    <p class="card-text">You can clear chat history for all characters. This action cannot be undone.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-outline-danger" onclick="clearAllHistory()">Clear ALL History</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit -->
+    <div class="modal fade" id="characterModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Add Character</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="characterForm" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Name *</label>
+                                <input type="text" id="charName" class="form-control" required minlength="2"
+                                    placeholder="e.g. Natasha">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Avatar URL</label>
+                                <input type="text" id="charAvatar" class="form-control"
+                                    placeholder="https://example.com/avatar.png">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">System Prompt (Personality)</label>
+                            <textarea id="charPrompt" class="form-control" rows="3"
+                                placeholder="How should the character behave?"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Scenario / Context</label>
+                            <textarea id="charScenario" class="form-control" rows="2"
+                                placeholder="Where are we? What is happening?"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">First Message</label>
+                            <input type="text" id="charFirstMsg" class="form-control"
+                                placeholder="Greeting from the AI">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Temperature (0.1 - 2.0)</label>
+                                <input type="number" id="charTemp" class="form-control" step="0.1" min="0.1" max="2.0"
+                                    value="0.8">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Max Tokens</label>
+                                <input type="number" id="charMaxTokens" class="form-control" value="200">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Avatar Generation Prompt</label>
+                            <input type="text" id="charAvatarPrompt" class="form-control"
+                                placeholder="Description for AI image generator">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-cyber" onclick="saveCharacter()">Save Character</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Проверка авторизации
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            window.location.href = '/';
+        } else {
+            const user = JSON.parse(userData);
+            $('#user-display-name').text(user.display_name);
+        }
+
+        window.logout = function () {
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        };
+
+        let editingSlug = null;
+
+        function loadCharacters() {
+            $.get('/api/characters', function (characters) {
+                const grid = $('#character-grid');
+                grid.empty();
+                characters.forEach(char => {
+                    const avatar = char.avatar
+                        ? `<img src="${char.avatar}" class="avatar-preview">`
+                        : `<div class="avatar-preview">${char.name[0]}</div>`;
+
+                    grid.append(`
+                        <div class="col-md-3">
+                            <div class="character-card text-center">
+                                ${avatar}
+                                <h3>${char.name}</h3>
+                                <p class="text-muted small">slug: ${char.slug}</p>
+                                <div class="d-flex justify-content-center gap-2 mt-4">
+                                    <button class="btn btn-sm btn-outline-light" onclick="prepareEdit('${char.slug}')">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCharacter('${char.slug}')">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        function prepareAdd() {
+            editingSlug = null;
+            $('#modalTitle').text('Add Character');
+            $('#characterForm').removeClass('was-validated');
+            $('#charName').val('');
+            $('#charAvatar').val('');
+            $('#charPrompt').val('');
+            $('#charScenario').val('');
+            $('#charFirstMsg').val('');
+            $('#charTemp').val(0.8);
+            $('#charMaxTokens').val(200);
+            $('#charAvatarPrompt').val('');
+        }
+
+        function prepareEdit(slug) {
+            editingSlug = slug;
+            $.get('/api/characters/' + slug, function (char) {
+                $('#modalTitle').text('Edit: ' + char.name);
+                $('#charName').val(char.name);
+                $('#charAvatar').val(char.avatar || '');
+                $('#charPrompt').val(char.system_prompt || '');
+                $('#charScenario').val(char.scenario || '');
+                $('#charFirstMsg').val(char.first_message || '');
+                $('#charTemp').val(char.temperature);
+                $('#charMaxTokens').val(char.max_tokens);
+                $('#charAvatarPrompt').val(char.avatar_prompt || '');
+                new bootstrap.Modal('#characterModal').show();
+            });
+        }
+
+        function saveCharacter() {
+            const form = document.getElementById('characterForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                name: $('#charName').val(),
+                avatar: $('#charAvatar').val(),
+                system_prompt: $('#charPrompt').val(),
+                scenario: $('#charScenario').val(),
+                first_message: $('#charFirstMsg').val(),
+                temperature: parseFloat($('#charTemp').val()),
+                max_tokens: parseInt($('#charMaxTokens').val()),
+                avatar_prompt: $('#charAvatarPrompt').val()
+            };
+
+            const url = editingSlug ? '/api/characters/' + editingSlug : '/api/characters';
+            const method = editingSlug ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function () {
+                    bootstrap.Modal.getInstance('#characterModal').hide();
+                    loadCharacters();
+                },
+                error: function (err) {
+                    alert('Error: ' + (err.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        }
+
+        function deleteCharacter(slug) {
+            if (confirm('Delete this character and all their history?')) {
+                $.ajax({
+                    url: '/api/characters/' + slug,
+                    method: 'DELETE',
+                    success: function () {
+                        // Также удаляем историю
+                        $.ajax({ url: '/api/history/' + slug, method: 'DELETE' });
+                        loadCharacters();
+                    }
+                });
+            }
+        }
+
+        function clearAllHistory() {
+            if (confirm('DANGER: Clear ALL chat history?')) {
+                $.ajax({
+                    url: '/api/history/all',
+                    method: 'DELETE',
+                    success: function () {
+                        alert('History cleared');
+                    }
+                });
+            }
+        }
+
+        $(document).ready(loadCharacters);
+    </script>
+</body>
+
+</html>
