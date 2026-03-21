@@ -11,6 +11,7 @@
     --text-dim: #99bbbc;
     --glass-border: rgba(255, 255, 255, 0.08);
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --bs-card-bg: #0f3760;
 }
 
 * {
@@ -44,6 +45,67 @@ code {
     max-width: 1200px;
     margin: 0 auto;
 }
+
+.card {
+    background-color: var(--bg-card);
+}
+
+.login-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.8s ease;
+}
+
+.btn-cyber {
+    background: var(--accent-glow);
+    color: #e0e3e5;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    width: 100%;
+    margin-top: 10px;
+    box-shadow: -1px 2px 5px rgba(0, 242, 255, 0.3);
+}
+
+.btn-cyber:hover {
+    box-shadow: 0 0 10px rgba(60, 173, 179, 0.5);
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+}
+
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-neon);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+
 
 /* --- Sidebar --- */
 .sidebar {
@@ -343,6 +405,64 @@ code {
     border-radius: 8px;
     object-fit: cover;
 }
+
+
+.character-card {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    padding: 20px;
+    transition: transform 0.2s;
+}
+
+.character-card:hover {
+    transform: translateY(-5px);
+    border-color: #e94560;
+}
+
+.nav-link {
+    color: #e94560;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.nav-link:hover {
+    color: #fff;
+}
+
+
+.form-control,
+.form-control:focus {
+    background: #0f3460;
+    border-color: #1a1a2e;
+    color: white;
+}
+
+.modal-content {
+    background: #16213e;
+    color: white;
+    border: 1px solid #e94560;
+}
+
+.modal-header,
+.modal-footer {
+    border-color: #0f3460;
+}
+
+.avatar-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 26px;
+}
+
 
 /* Scrollbar */
 ::-webkit-scrollbar {

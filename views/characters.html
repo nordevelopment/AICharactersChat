@@ -6,86 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Characters - AI Character Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles.css">
-    <style>
-        .character-card {
-            background: #16213e;
-            border: 1px solid #0f3460;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            padding: 20px;
-            transition: transform 0.2s;
-        }
-
-        .character-card:hover {
-            transform: translateY(-5px);
-            border-color: #e94560;
-        }
-
-        .nav-link {
-            color: #e94560;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .nav-link:hover {
-            color: #fff;
-        }
-
-        .btn-cyber {
-            background: #e94560;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 8px 20px;
-        }
-
-        .btn-cyber:hover {
-            background: #b3364a;
-            color: white;
-        }
-
-        .form-control,
-        .form-control:focus {
-            background: #0f3460;
-            border-color: #1a1a2e;
-            color: white;
-        }
-
-        .modal-content {
-            background: #16213e;
-            color: white;
-            border: 1px solid #e94560;
-        }
-
-        .modal-header,
-        .modal-footer {
-            border-color: #0f3460;
-        }
-
-        .avatar-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #0f3460;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 40px;
-        }
-    </style>
+    <link rel="stylesheet" href="/public/styles.css?v=6">
 </head>
 
 <body>
-    <div class="container py-5">
+    <div class="container py-2">
         <div class="d-flex justify-content-between align-items-center mb-5">
-            <h1 class="m-0">Character Management</h1>
+            <h3 class="m-0">Character Management</h3>
             <nav class="d-flex align-items-center">
                 <span id="user-display-name" class="me-3" style="font-size: 0.9rem; color: #e94560;">User</span>
-                <a href="/chat" class="nav-link me-4">← Back to Chat</a>
-                <button onclick="logout()" class="btn btn-sm btn-outline-secondary me-4">Logout</button>
+                <button onclick="logout()" class="btn btn-sm btn-cyber me-4">Logout</button>
                 <button class="btn btn-cyber" data-bs-toggle="modal" data-bs-target="#characterModal"
                     onclick="prepareAdd()">+ Add New Character</button>
             </nav>
@@ -95,16 +25,16 @@
             <!-- Characters will be loaded here -->
         </div>
 
-        <div class="mt-5 pt-5 border-top border-secondary">
-            <h2 class="mb-4">Global History Management</h2>
-            <div class="card bg-dark border-danger">
+        <div class="mt-2 pt-2 border-top border-secondary">
+            <h4 class="mb-2">Global History Management</h4>
+            <div class="card border-danger">
                 <div class="card-body">
                     <h5 class="card-title text-danger">Danger Zone</h5>
-                    <p class="card-text">You can clear chat history for all characters. This action cannot be undone.
-                    </p>
-                    <div class="d-flex gap-3">
+                    <p class="card-text">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        You can clear chat history for all characters. This action cannot be undone.
                         <button class="btn btn-outline-danger" onclick="clearAllHistory()">Clear ALL History</button>
-                    </div>
+                    </p>
                 </div>
             </div>
         </div>

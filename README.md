@@ -29,7 +29,7 @@
 
 ## ✨ Key Features
 
-1.  **Unique Personalities**: Load character configurations from JSON files (`storage/characters/`). Easily add new ones.
+1.  **Character Management UI**: Create, edit, and delete characters directly from a dedicated management dashboard (`/characters`). No manual JSON editing required.
 2.  **Real-time Streaming**: No waiting for the full response. Text flows onto the screen as it's generated.
 3.  **Smart Context Management (Summarization)**: When the chat history gets too long, the system automatically generates a concise summary to keep the AI in focus and save on tokens.
 4.  **Markdown Support**: Full support for bold, italics, lists, and code blocks.
@@ -72,8 +72,8 @@ Visit `http://localhost:3000` and start your conversation.
 - `src/backend/` — Fastify server logic.
 - `src/frontend/` — Client-side scripts and styles.
 - `views/` — HTML templates.
-- `storage/characters/` — JSON character definitions.
-- `database.sqlite` — Local storage for chat logs.
+- `database.sqlite` — Local storage for chat logs and character definitions.
+- `storage/temp_images/` — Temporary storage for image uploads.
 
 ---
 
