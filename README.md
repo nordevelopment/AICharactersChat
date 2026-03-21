@@ -4,6 +4,9 @@
 [![Fastify](https://img.shields.io/badge/Fastify-5.x-blue.svg)](https://www.fastify.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
+> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)** 🚀
+
+---
 **AI Character Chat** is a lightweight, self-hosted full-stack application designed for roleplaying with AI characters. It focuses on simplicity, speed, and a smooth user experience with real-time SSE streaming.
 
 > **Why this?** Because sometimes you just want to chat with a character without setting up a 2GB docker image or navigating through 50 complex configuration menus. 
