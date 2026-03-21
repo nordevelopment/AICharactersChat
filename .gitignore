@@ -1,6 +1,5 @@
 node_modules
 dist
 .env
-src/backend/seed.ts
 database.sqlite
-storage
+storage/temp_images
