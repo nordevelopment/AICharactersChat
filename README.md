@@ -1,16 +1,26 @@
-# AI Character Chat 🤖🎭
+# AI Character Chat 🤖🎭 
+> **The "Make it Easy" AI Roleplay Tool.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Fastify](https://img.shields.io/badge/Fastify-5.x-blue.svg)](https://www.fastify.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
-> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)** 🚀
+---
+> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)** 
+
+### 🚀 Launch & Roleplay. No Bullsh*t.
+Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Character Chat** is different. It’s built on a simple philosophy: **Keep it Easy.**
+
+1. `npm install`
+2. `npm run seed`
+3. **Start Roleplaying.**
 
 ---
 
-**AI Character Chat** is a lightweight, self-hosted full-stack application designed for roleplaying with AI characters. It focuses on simplicity, speed, and a smooth user experience with real-time SSE streaming.
-
-> **Why this?** Because sometimes you just want to chat with a character without setting up a 2GB docker image or navigating through 50 complex configuration menus. 
+## 🔥 New: Multi-User & Separate Histories
+I just updated the engine! Now you can:
+* **Be Anyone**: Create different profiles to talk with characters under different names. No more manual renaming every 5 minutes.
+* **Separate Worlds**: Each user has their own chat history. Your dark fantasy RP won't mix with your coding assistant chat.
+* **Easy Switching**: Change your persona in two clicks through the new Cyberpunk nav menu.
 
 ---
 
