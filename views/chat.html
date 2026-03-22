@@ -11,9 +11,9 @@
 </head>
 
 <body>
-    <div class="wrapper">
+    <div class="wrapper" x-data="chatApp" x-cloak>
         <!-- Sidebar Toggle for Mobile -->
-        <button id="sidebar-toggle" class="btn d-md-none position-absolute"
+        <button id="sidebar-toggle" class="btn d-md-none position-absolute" @click="sidebarActive = !sidebarActive"
             style="top: 15px; left: 15px; z-index: 101; color: var(--accent-neon);">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
                 <path fill-rule="evenodd"
@@ -21,32 +21,46 @@
             </svg>
         </button>
 
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar" :class="{ 'active': sidebarActive }" id="sidebar" @click.away="sidebarActive = false">
             <div class="sidebar-header">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span id="user-display-name">User</span>
-                    <button onclick="logout()" class="btn btn-sm btn-link text-muted p-0 logout-btn">Logout</button>
+                    <span x-text="user.display_name">User</span>
+                    <button @click="logout()" class="btn btn-sm btn-link text-muted p-0 logout-btn">Logout</button>
                 </div>
                 <h4 class="mb-3">Characters</h4>
                 <a href="/characters" class="btn btn-sm w-100 manage-btn">Manage Characters</a>
             </div>
-            <div id="character-list" class="character-list">
-                <!-- Character list populated by JS -->
+            <div class="character-list">
+                <template x-for="char in characters" :key="char.id">
+                    <div class="character-item" :class="{ 'active': currentCharacter?.id === char.id }"
+                        @click="selectCharacter(char)">
+                        <div class="d-flex align-items-center">
+                            <template x-if="char.avatar">
+                                <img :src="char.avatar"
+                                    style="width:30px; height:30px; border-radius:50%; margin-right:10px; object-fit:cover;">
+                            </template>
+                            <template x-if="!char.avatar">
+                                <div class="avatar-icon" x-text="char.name[0]"></div>
+                            </template>
+                            <div style="flex-grow:1; overflow:hidden;">
+                                <span class="character-name" x-text="char.name"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
 
         <div class="chat-container">
             <div class="chat-header">
-                <img id="character-avatar"
-                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
-                    alt="">
+                <img id="character-avatar" :src="currentCharacter ? getAvatar(currentCharacter) : ''" />
                 <div style="flex-grow:1;">
-                    <h3 id="character-name" class="m-0">Select a character</h3>
-                    <div id="character-status" style="font-size: 0.75rem; color: var(--text-dim);">Ready to chat</div>
+                    <h3 class="m-0" x-text="currentCharacter ? currentCharacter.name : 'Select a character'"></h3>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);"
+                        x-text="isTyping ? 'Writing...' : 'Ready to chat'"></div>
                 </div>
-                <!-- ... clear button stays ... -->
-                <button id="clear-history" class="btn btn-sm btn-outline-danger" title="Clear History">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class=""
+                <button @click="clearHistory()" class="btn btn-sm btn-outline-danger" title="Clear History">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         viewBox="0 0 16 16">
                         <path
                             d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z" />
@@ -56,15 +70,30 @@
                 </button>
             </div>
 
-            <div id="chat-window">
-                <!-- Сообщения будут тут -->
+            <div id="chat-window" x-ref="chatWindow">
+                <template x-for="(msg, index) in messages" :key="index">
+                    <div class="message" :class="msg.role === 'user' ? 'user-message' : 'ai-message'">
+                        <template x-if="msg.image">
+                            <div class="mb-2 chat-img"><img :src="msg.image"></div>
+                        </template>
+                        <div class="content" x-html="renderMarkdown(msg.content)"></div>
+                    </div>
+                </template>
+                <template x-if="isTyping && typingMessage">
+                    <div class="message ai-message">
+                        <div class="content" x-html="renderMarkdown(typingMessage)"></div>
+                    </div>
+                </template>
+                <template x-if="isTyping && !typingMessage">
+                    <div class="message ai-message typing-indicator">Typing...</div>
+                </template>
             </div>
 
-            <div id="image-preview-container" class="px-3 py-2"
-                style="display:none; background: #16213e; border-top: 1px solid #0f3460;">
+            <div x-show="selectedImage" id="image-preview-container" class="px-3 py-2"
+                style="background: #16213e; border-top: 1px solid #0f3460;">
                 <div class="position-relative d-inline-block">
-                    <img id="image-preview" class="chat-img" src="">
-                    <button onclick="clearImageSelection()"
+                    <img id="image-preview" class="chat-img" :src="selectedImage">
+                    <button @click="clearImage()"
                         class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
                         style="transform: translate(50%, -50%); padding: 0 6px;">&times;</button>
                 </div>
@@ -79,10 +108,14 @@
                             <path
                                 d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z" />
                         </svg>
-                        <input type="file" id="image-input" accept="image/*" style="display:none;">
+                        <input type="file" id="image-input" x-ref="imageInput" @change="handleImage" accept="image/*"
+                            style="display:none;">
                     </label>
-                    <textarea id="message-input" placeholder="Type a message..." autocomplete="off" rows="1"></textarea>
-                    <button id="send-button">
+                    <textarea x-model="newMessage"
+                        @keydown.enter.prevent="if(!$event.shiftKey && !$event.ctrlKey) sendMessage()"
+                        placeholder="Type a message..." autocomplete="off" rows="1"
+                        :style="`height: ${Math.min(newMessage.split('\n').length * 24 + 16, 200)}px`"></textarea>
+                    <button @click="sendMessage()" :disabled="!currentCharacter || isTyping">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
                             class="bi bi-send-fill" viewBox="0 0 16 16">
                             <path
@@ -96,11 +129,11 @@
 
 
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="/public/app.js"></script>
+    <script src="/public/app_chat.js"></script>
 </body>
 
 </html>

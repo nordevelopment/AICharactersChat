@@ -11,50 +11,6 @@ export async function initDB() {
     driver: sqlite3.Database
   });
 
-  // Таблица пользователей (сразу готовим для работы)
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      display_name TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Таблица персонажей
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS characters (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      slug TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      system_prompt TEXT,
-      first_message TEXT,
-      scenario TEXT,
-      temperature REAL DEFAULT 0.7,
-      max_tokens INTEGER DEFAULT 200,
-      avatar TEXT,
-      avatar_prompt TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // Таблица сообщений
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      character_id INTEGER NOT NULL,
-      role VARCHAR(20) NOT NULL,
-      content TEXT NOT NULL,
-      is_greeting INTEGER DEFAULT 0,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
-    )
-  `);
-
-  // Добавляем индекс для ускорения выборки истории
-  await db.exec('CREATE INDEX IF NOT EXISTS idx_messages_char_id ON messages (character_id)');
-
   console.log('[DB] SQLite connected and ready.');
   return db;
 }
@@ -104,8 +60,8 @@ export const dbRepo = {
     }
   },
 
-  async getChatMessages(characterId: number): Promise<ChatMessage[]> {
-    const rows = await db.all('SELECT id, role, content FROM messages WHERE character_id = ? ORDER BY timestamp ASC', [characterId]);
+  async getChatMessages(characterId: number, userId: number): Promise<ChatMessage[]> {
+    const rows = await db.all('SELECT id, role, content FROM messages WHERE character_id = ? AND user_id = ? ORDER BY timestamp ASC', [characterId, userId]);
     return rows.map(row => ({
       id: row.id,
       role: row.role as any,
@@ -113,11 +69,11 @@ export const dbRepo = {
     }));
   },
 
-  async addMessage(characterId: number, message: ChatMessage, isGreeting: number = 0) {
+  async addMessage(characterId: number, userId: number, message: ChatMessage, isGreeting: number = 0) {
     const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
     await db.run(
-      'INSERT INTO messages (character_id, role, content, is_greeting) VALUES (?, ?, ?, ?)',
-      [characterId, message.role, content, isGreeting]
+      'INSERT INTO messages (character_id, user_id, role, content, is_greeting) VALUES (?, ?, ?, ?, ?)',
+      [characterId, userId, message.role, content, isGreeting]
     );
   },
 
@@ -127,12 +83,12 @@ export const dbRepo = {
     await db.run(`DELETE FROM messages WHERE id IN (${placeholders})`, ids);
   },
 
-  async deleteHistory(characterId: number) {
-    await db.run('DELETE FROM messages WHERE character_id = ?', [characterId]);
+  async deleteHistory(characterId: number, userId: number) {
+    await db.run('DELETE FROM messages WHERE character_id = ? AND user_id = ?', [characterId, userId]);
   },
 
-  async deleteAllHistory() {
-    await db.run('DELETE FROM messages');
+  async deleteAllHistory(userId: number) {
+    await db.run('DELETE FROM messages WHERE user_id = ?', [userId]);
   },
 
   async getUserByEmail(email: string): Promise<User | undefined> {

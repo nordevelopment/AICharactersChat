@@ -10,27 +10,30 @@ export async function chatRoutes(server: FastifyInstance) {
 
   server.post('/api/chat', async (request, reply) => {
     const { message, character_id, image } = request.body as ChatRequestPayload;
+    const userId = request.session.user!.id;
     if (!character_id) return reply.code(400).send({ error: 'ID required' });
 
     const activeCharacter = await dbRepo.getCharacterById(character_id);
-    if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
+    if (!activeCharacter) reply.code(404).send({ error: 'Not found' });
 
     // Обработка первого контакта
-    const historyInDB = await dbRepo.getChatMessages(character_id);
-    if (historyInDB.length === 0 && activeCharacter.first_message) {
-      await dbRepo.addMessage(character_id, { role: 'assistant', content: activeCharacter.first_message }, 1);
+    const historyInDB = await dbRepo.getChatMessages(character_id, userId);
+    if (historyInDB.length === 0 && activeCharacter!.first_message) {
+      await dbRepo.addMessage(character_id, userId, { role: 'assistant', content: activeCharacter!.first_message }, 1);
     }
 
     // Сохраняем текст пользователя
-    await dbRepo.addMessage(character_id, { role: 'user', content: message });
-    
-    // Саммари (в оригинале это было ДО аи вызова)
-    await aiService.summarizeIfNeeded(character_id);
-    
-    const history = await dbRepo.getChatMessages(character_id);
+    await dbRepo.addMessage(character_id, userId, { role: 'user', content: message });
+
+    // Суммаризация в фоне (отпускаем пользователя сразу за ответом AI)
+    aiService.summarizeIfNeeded(character_id, userId).catch(err => {
+      server.log.error(err, '[AI SERVICE] Background summarization failed');
+    });
+
+    const history = await dbRepo.getChatMessages(character_id, userId);
 
     try {
-      const response = await aiService.getStreamingResponse(activeCharacter, history, message, image);
+      const response = await aiService.getStreamingResponse(activeCharacter!, history, message, image);
 
       let fullReply = '';
       return reply.sse((async function* () {
@@ -40,7 +43,7 @@ export async function chatRoutes(server: FastifyInstance) {
             try {
               const content = JSON.parse(event.data).choices[0]?.delta?.content;
               if (content) fullReply += content;
-            } catch (e) {}
+            } catch (e) { }
           }
         });
 
@@ -52,10 +55,10 @@ export async function chatRoutes(server: FastifyInstance) {
           }
         }
         yield { data: JSON.stringify({ done: true }) };
-        
+
         // Save assistant reply
         if (fullReply) {
-          await dbRepo.addMessage(character_id, { role: 'assistant', content: fullReply });
+          await dbRepo.addMessage(character_id, userId, { role: 'assistant', content: fullReply });
         }
       })());
     } catch (error: any) {
@@ -66,17 +69,20 @@ export async function chatRoutes(server: FastifyInstance) {
 
   server.get('/api/history', async (request) => {
     const { character_id } = request.query as { character_id?: string };
+    const userId = request.session.user!.id;
     if (!character_id) return [];
-    return await dbRepo.getChatMessages(parseInt(character_id));
+    return await dbRepo.getChatMessages(parseInt(character_id), userId);
   });
 
   server.delete('/api/history/:id', async (request) => {
-    await dbRepo.deleteHistory(parseInt((request.params as any).id));
+    const userId = request.session.user!.id;
+    await dbRepo.deleteHistory(parseInt((request.params as any).id), userId);
     return { success: true };
   });
 
-  server.delete('/api/history/all', async () => {
-    await dbRepo.deleteAllHistory();
+  server.delete('/api/history/all', async (request) => {
+    const userId = request.session.user!.id;
+    await dbRepo.deleteAllHistory(userId);
     return { success: true };
   });
 }

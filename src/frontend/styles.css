@@ -14,6 +14,10 @@
     --bs-card-bg: #0f3760;
 }
 
+[x-cloak] {
+    display: none !important;
+}
+
 * {
     box-sizing: border-box;
 }

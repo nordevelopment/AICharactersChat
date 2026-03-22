@@ -23,8 +23,8 @@ export class AiService {
    * Суммаризация старых сообщений, чтобы не раздувать контекст.
    * Вызывается при достижении лимита.
    */
-  async summarizeIfNeeded(characterId: number): Promise<void> {
-    const history = await dbRepo.getChatMessages(characterId);
+  async summarizeIfNeeded(characterId: number, userId: number): Promise<void> {
+    const history = await dbRepo.getChatMessages(characterId, userId);
 
     // Если сообщений меньше 30, не мучаем API
     if (history.length <= 30) return;
@@ -57,11 +57,11 @@ export class AiService {
       if (summary) {
         // Транзакционно удаляем старое и добавляем суммаризацию
         await dbRepo.deleteMessages(idsToDelete);
-        await dbRepo.addMessage(characterId, {
+        await dbRepo.addMessage(characterId, userId, {
           role: 'system',
           content: `Historical Context Summary: ${summary.trim()}`
         });
-        console.log(`[AI SERVICE] Automated summary generated for character ${characterId}`);
+        console.log(`[AI SERVICE] Automated summary generated for character ${characterId} for user ${userId}`);
       }
     } catch (e) {
       console.error('[AI SERVICE] Context summarization failed:', e instanceof Error ? e.message : e);
