@@ -28,6 +28,7 @@ export const config = {
   maxHistoryMessages: 20,
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
+  debugAi: process.env.AI_DEBUG_LOGS !== 'false', // По умолчанию включено, если не указано обратное
 };
 
 // Простая проверка обязательных переменных

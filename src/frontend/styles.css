@@ -69,6 +69,7 @@ code {
     margin: 80px auto 20px auto;
 }
 
+
 .btn-cyber {
     background: var(--accent-glow);
     color: #e0e3e5;
@@ -87,16 +88,19 @@ code {
 .form-control {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
-    color: #fff;
+    color: var(--text-dim);
 }
 
 .form-control:focus {
     background: rgba(255, 255, 255, 0.08);
-    border-color: var(--accent-neon);
-    color: #fff;
+    border-color: var(--glass-border);
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+    color: var(--text-dim);
 }
 
+.form-control::placeholder {
+    color: var(--text-dim);
+}
 
 @keyframes fadeIn {
     from {
@@ -109,9 +113,6 @@ code {
         transform: translateY(0);
     }
 }
-
-
-
 
 
 /* --- Sidebar --- */
@@ -403,22 +404,33 @@ code {
 }
 
 
-.form-control,
-.form-control:focus {
-    background: #0f3460;
-    border-color: #1a1a2e;
-    color: white;
+.modal-header,
+.modal-footer {
+    border-color: var(--glass-border);
 }
 
 .modal-content {
-    background: #16213e;
-    color: white;
-    border: 1px solid #e94560;
+    background: var(--bg-deep);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
 }
 
-.modal-header,
-.modal-footer {
-    border-color: #0f3460;
+.modal-header {
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 20px 25px;
+}
+
+.modal-title {
+    color: var(--accent-teal);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.modal-body {
+    padding: 15px;
 }
 
 .avatar-preview {
@@ -433,9 +445,6 @@ code {
     margin: 0 auto 15px;
     font-size: 26px;
 }
-
-
-
 
 
 /* --- Navigation & Profile --- */
@@ -505,30 +514,6 @@ code {
     font-weight: 800;
     font-size: 0.75rem;
     box-shadow: 0 0 8px var(--accent-glow);
-}
-
-.modal-cyber .modal-content {
-    background: #091a22 !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7) !important;
-    overflow: hidden;
-}
-
-.modal-cyber .modal-header {
-    border-bottom: 1px solid var(--glass-border);
-    background: rgba(255, 255, 255, 0.02);
-    padding: 20px 25px;
-}
-
-.modal-cyber .modal-title {
-    color: var(--accent-teal);
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
-.modal-cyber .modal-body {
-    padding: 25px;
 }
 
 .dropdown-menu-cyber {

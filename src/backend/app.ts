@@ -22,19 +22,19 @@ declare module 'fastify' {
 }
 
 export async function createApp() {
-  const server = fastify({ 
+  const server = fastify({
     logger: {
       level: 'info',
       transport: {
         target: 'pino-pretty',
         options: { colorize: true }
       }
-    } 
+    }
   });
 
   // Plugins
   await server.register(FastifySSEPlugin);
-  
+
   // 1. Коротко: Сначала Cookies, потом Sessions
   await server.register(fastifyCookie);
   await server.register(fastifySession, {
@@ -53,18 +53,20 @@ export async function createApp() {
   await server.register(fastifyStatic, {
     root: config.frontendRoot,
     prefix: '/public/',
+    logLevel: 'warn'
   });
 
   await server.register(fastifyStatic, {
     root: config.viewsRoot,
     prefix: '/',
-    decorateReply: false
+    decorateReply: false,
+    logLevel: 'warn'
   });
 
   // Views serving (direct HTML files)
-  server.get('/', async (req, reply) => reply.sendFile('index.html', config.viewsRoot));
-  server.get('/chat', async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
-  server.get('/characters', async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));
+  server.get('/', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('index.html', config.viewsRoot));
+  server.get('/chat', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
+  server.get('/characters', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));
 
   // Application Routes
   await server.register(authRoutes);

@@ -23,7 +23,7 @@ export class AiService {
    * Суммаризация старых сообщений, чтобы не раздувать контекст.
    * Вызывается при достижении лимита.
    */
-  async summarizeIfNeeded(characterId: number, userId: number): Promise<void> {
+  async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
     const history = await dbRepo.getChatMessages(characterId, userId);
 
     // Если сообщений меньше 30, не мучаем API
@@ -36,6 +36,10 @@ export class AiService {
 
     try {
       const prompt = 'You are a history chronologist. Briefly summarize the previous interaction context of the following dialogue in one concise paragraph:';
+
+      if (config.debugAi && logger) {
+        logger.info({ body: { model: config.aiDefaultModel, messages: messagesToSummarize.length } }, '[AI SERVICE] Context summarization request');
+      }
 
       const res = await axios.post(config.apiUrl, {
         model: config.aiDefaultModel,
@@ -53,6 +57,10 @@ export class AiService {
         timeout: 15000
       });
 
+      if (config.debugAi && logger) {
+        logger.info({ status: res.status }, '[AI SERVICE] Context summarization response');
+      }
+
       const summary = res.data.choices?.[0]?.message?.content;
       if (summary) {
         // Транзакционно удаляем старое и добавляем суммаризацию
@@ -61,10 +69,14 @@ export class AiService {
           role: 'system',
           content: `Historical Context Summary: ${summary.trim()}`
         });
-        console.log(`[AI SERVICE] Automated summary generated for character ${characterId} for user ${userId}`);
+        if (logger) {
+          logger.info(`[AI SERVICE] Automated summary generated for character ${characterId} for user ${userId}`);
+        }
       }
     } catch (e) {
-      console.error('[AI SERVICE] Context summarization failed:', e instanceof Error ? e.message : e);
+      if (logger) {
+        logger.error(e, '[AI SERVICE] Context summarization failed');
+      }
     }
   }
 
@@ -95,13 +107,22 @@ export class AiService {
   /**
    * Получение стримингового ответа с гарантированным сохранением контекста
    */
-  async getStreamingResponse(character: Character, history: ChatMessage[], newUserMessage?: string, imageBase64?: string) {
-    // 1. Сначала подтягиваем системный промпт
-    const aiMessages: AiMessage[] = [];
-
+  async getStreamingResponse(character: Character, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string) {
+    // 1. Формируем системный промпт
     let baseSystemPrompt = character.system_prompt || 'You are a helpful AI assistant.';
-    if (character.scenario) baseSystemPrompt += `\nScenario/Setting: ${character.scenario}`;
 
+    // Добавляем сценарий, если есть
+    if (character.scenario) {
+      baseSystemPrompt += `\n\nScenario/Setting:\n${character.scenario}`;
+    }
+
+    // Подстановка переменных {{user}} и {{char}}
+    if (userName) {
+      baseSystemPrompt = baseSystemPrompt.replace(/{{user}}/g, userName);
+    }
+    baseSystemPrompt = baseSystemPrompt.replace(/{{char}}/g, character.name);
+
+    const aiMessages: AiMessage[] = [];
     aiMessages.push({ role: 'system', content: baseSystemPrompt });
 
     // 2. Добавляем последние N сообщений истории (избегаем амнезии)
@@ -126,8 +147,7 @@ export class AiService {
       }
     }
 
-    // 4. Делаем запрос к API
-    return await axios.post(config.apiUrl, {
+    const requestBody = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
       max_tokens: character.max_tokens ?? config.aiMaxTokens,
@@ -139,14 +159,39 @@ export class AiService {
       reasoning: config.aiReasoning,
       messages: aiMessages,
       stream: true,
-    }, {
-      headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      responseType: 'stream',
-      timeout: 30000 // Ждем не больше 30 секунд
-    });
+      stream_options: { include_usage: true }
+    };
+
+    if (config.debugAi && logger) {
+      logger.info({ body: requestBody }, '[AI SERVICE] Outgoing AI Request');
+    }
+
+    try {
+      const res = await axios.post(config.apiUrl, requestBody, {
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'stream',
+        timeout: 30000 // Ждем не больше 30 секунд
+      });
+
+      if (config.debugAi && logger) {
+        logger.info({
+          status: res.status,
+          headers: res.headers
+        }, '[AI SERVICE] AI Response Started');
+      }
+      return res;
+    } catch (err: any) {
+      if (config.debugAi && logger) {
+        logger.error({
+          error: err.response?.data || err.message,
+          status: err.response?.status
+        }, '[AI SERVICE] AI API Request Failed');
+      }
+      throw err;
+    }
   }
 }
 

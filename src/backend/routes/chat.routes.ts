@@ -3,6 +3,7 @@ import { dbRepo } from '../database/sqlite';
 import { aiService } from '../services/ai.service';
 import { ChatRequestPayload } from '../types';
 import { createParser } from 'eventsource-parser';
+import { config } from '../config/config';
 
 export async function chatRoutes(server: FastifyInstance) {
   // Защищаем все роуты в этом модуле через хук
@@ -25,23 +26,44 @@ export async function chatRoutes(server: FastifyInstance) {
     // Сохраняем текст пользователя
     await dbRepo.addMessage(character_id, userId, { role: 'user', content: message });
 
-    // Суммаризация в фоне (отпускаем пользователя сразу за ответом AI)
-    aiService.summarizeIfNeeded(character_id, userId).catch(err => {
+    // Суммаризация в фоне
+    aiService.summarizeIfNeeded(character_id, userId, request.log).catch(err => {
       server.log.error(err, '[AI SERVICE] Background summarization failed');
     });
 
     const history = await dbRepo.getChatMessages(character_id, userId);
 
     try {
-      const response = await aiService.getStreamingResponse(activeCharacter!, history, message, image);
+      const response = await aiService.getStreamingResponse(
+        activeCharacter!,
+        history,
+        message,
+        image,
+        request.log,
+        request.session.user!.display_name
+      );
 
       let fullReply = '';
+      let firstChunkLogged = false;
       return reply.sse((async function* () {
         const parser = createParser({
           onEvent: (event) => {
             if (event.data === '[DONE]') return;
             try {
-              const content = JSON.parse(event.data).choices[0]?.delta?.content;
+              const data = JSON.parse(event.data);
+
+              // 1. Начальные метаданные
+              if (!firstChunkLogged && data.model && config.debugAi) {
+                request.log.info({ model: data.model, id: data.id }, '[AI SERVICE] Session Started');
+                firstChunkLogged = true;
+              }
+
+              // 2. Статистика использования (Usage)
+              if (data.usage && config.debugAi) {
+                request.log.info({ usage: data.usage }, '[AI SERVICE] Usage Stats Received');
+              }
+
+              const content = data.choices?.[0]?.delta?.content;
               if (content) fullReply += content;
             } catch (e) { }
           }
@@ -58,6 +80,9 @@ export async function chatRoutes(server: FastifyInstance) {
 
         // Save assistant reply
         if (fullReply) {
+          if (config.debugAi) {
+            request.log.info({ fullText: fullReply }, '[AI SERVICE] Final Assembled Text');
+          }
           await dbRepo.addMessage(character_id, userId, { role: 'assistant', content: fullReply });
         }
       })());

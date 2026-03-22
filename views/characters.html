@@ -109,9 +109,8 @@
                                         placeholder="e.g. Natasha">
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Avatar URL</label>
-                                    <input type="text" x-model="form.avatar" class="form-control"
-                                        placeholder="https://example.com/avatar.png">
+                                    <label class="form-label">Avatar</label>
+                                    <input type="file" x-model="form.avatar" class="form-control">
                                 </div>
                             </div>
 
@@ -135,21 +134,22 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Temperature (0.1 - 2.0)</label>
+                                    <label class="form-label">Temperature (0.1 - 1.2)</label>
                                     <input type="number" x-model="form.temperature" class="form-control" step="0.1"
-                                        min="0.1" max="2.0">
+                                        min="0.1" max="1.2">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Max Tokens</label>
-                                    <input type="number" x-model="form.max_tokens" class="form-control">
+                                    <input type="number" x-model="form.max_tokens" class="form-control" min="100"
+                                        max="4000" value="">
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                            <!-- <div class="mb-3">
                                 <label class="form-label">Avatar Generation Prompt</label>
                                 <input type="text" x-model="form.avatar_prompt" class="form-control"
                                     placeholder="Description for AI image generator">
-                            </div>
+                            </div> -->
                         </form>
                     </div>
                     <div class="modal-footer">

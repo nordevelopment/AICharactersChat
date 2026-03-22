@@ -14,6 +14,7 @@ export interface Character {
 
 export interface ChatMessage {
   id?: number;
+  user_id?: number;
   character_id?: number;
   role: 'system' | 'user' | 'assistant';
   content: string | any[];

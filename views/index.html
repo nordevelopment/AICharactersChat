@@ -15,11 +15,11 @@
         <form @submit.prevent="submit">
             <div class="mb-3">
                 <label class="form-label">Email Address</label>
-                <input type="email" x-model="email" class="form-control" placeholder="admin@chat.com" required>
+                <input type="email" x-model="email" class="form-control" placeholder="admin@example.com" required>
             </div>
             <div class="mb-4">
                 <label class="form-label">Password</label>
-                <input type="password" x-model="password" class="form-control" placeholder="••••••••" required>
+                <input type="password" x-model="password" class="form-control" placeholder="12345678" required>
             </div>
             <div x-show="errorMessage" x-text="errorMessage" class="text-danger small mb-3" style="display:none;"></div>
             <button type="submit" class="btn btn-cyber" :disabled="loading"
