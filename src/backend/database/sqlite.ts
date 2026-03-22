@@ -93,5 +93,30 @@ export const dbRepo = {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     return await db.get<User>('SELECT * FROM users WHERE email = ?', [email]);
+  },
+
+  async getUserById(id: number): Promise<User | undefined> {
+    return await db.get<User>('SELECT * FROM users WHERE id = ?', [id]);
+  },
+
+  async updateUser(id: number, data: Partial<User>) {
+    const fields: string[] = [];
+    const params: any[] = [];
+
+    if (data.display_name !== undefined) {
+      fields.push('display_name = ?');
+      params.push(data.display_name);
+    }
+
+    if (data.password !== undefined) {
+      fields.push('password = ?');
+      params.push(data.password);
+    }
+
+    if (fields.length === 0) return;
+
+    params.push(id);
+    await db.run(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
+    return await this.getUserById(id);
   }
 };

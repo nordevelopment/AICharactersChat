@@ -58,7 +58,7 @@ We use traditional sessions instead of JWT for a simpler, more familiar workflow
 3.  **Cookies**: The server handles the `session_id` cookie automatically. No need to manually manage tokens in headers.
 4.  **Auth Middleware**: The `server.authenticate` decorator checks for valid sessions, returning 401 if unauthorized.
 
-### � Data Layer (Repository Pattern)
+### Data Layer (Repository Pattern)
 Drawing inspiration from Laravel's Eloquent, we use `dbRepo`:
 - Instead of raw queries, use clean methods like `await dbRepo.getUserByEmail(email)`.
 - This ensures the database logic is decoupled from the routes, making it easy to test or switch engines.
@@ -91,7 +91,7 @@ Each character can override global settings:
 
 ---
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 ```bash

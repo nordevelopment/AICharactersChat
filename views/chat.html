@@ -7,26 +7,45 @@
     <title>AI Character Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <link rel="stylesheet" href="/public/styles.css?v=6">
+    <link rel="stylesheet" href="/public/styles.css?v=8">
 </head>
 
-<body>
-    <div class="wrapper" x-data="chatApp" x-cloak>
-        <!-- Sidebar Toggle for Mobile -->
-        <button id="sidebar-toggle" class="btn d-md-none position-absolute" @click="sidebarActive = !sidebarActive"
-            style="top: 15px; left: 15px; z-index: 101; color: var(--accent-neon);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                    d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-            </svg>
-        </button>
+<body class="has-navbar" x-data="chatApp" x-cloak>
+    <nav class="navbar navbar-expand-lg navbar-cyber">
+        <div class="container-fluid">
+            <a class="navbar-brand navbar-brand-cyber" href="/chat">AI Character Chat</a>
+            <div class="navbar-collapse" id="navbarNav">
+                <div class="dropdown">
+                    <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <div class="profile-avatar-sm"
+                            x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
+                        <span>Chat Menu</span>
+                    </div>
 
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber active" href="/chat">Chat</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber" href="/characters">Characters</a>
+                        </li>
+                        <li><a class="dropdown-item dropdown-item-cyber" href="#"
+                                @click.prevent="openProfileModal()">Profile Settings</a></li>
+                        <li>
+                            <hr class="dropdown-divider border-secondary">
+                        </li>
+                        <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
+                                @click.prevent="logout()">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
         <div class="sidebar" :class="{ 'active': sidebarActive }" id="sidebar" @click.away="sidebarActive = false">
             <div class="sidebar-header">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span x-text="user.display_name">User</span>
-                    <button @click="logout()" class="btn btn-sm btn-link text-muted p-0 logout-btn">Logout</button>
-                </div>
                 <h4 class="mb-3">Characters</h4>
                 <a href="/characters" class="btn btn-sm w-100 manage-btn">Manage Characters</a>
             </div>
@@ -111,11 +130,11 @@
                         <input type="file" id="image-input" x-ref="imageInput" @change="handleImage" accept="image/*"
                             style="display:none;">
                     </label>
-                    <textarea x-model="newMessage"
+                    <textarea x-model="newMessage" class="message-input"
                         @keydown.enter.prevent="if(!$event.shiftKey && !$event.ctrlKey) sendMessage()"
                         placeholder="Type a message..." autocomplete="off" rows="1"
                         :style="`height: ${Math.min(newMessage.split('\n').length * 24 + 16, 200)}px`"></textarea>
-                    <button @click="sendMessage()" :disabled="!currentCharacter || isTyping">
+                    <button class="send-button" @click="sendMessage()" :disabled="!currentCharacter || isTyping">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
                             class="bi bi-send-fill" viewBox="0 0 16 16">
                             <path
@@ -128,7 +147,43 @@
     </div>
 
 
+    <!-- Profile Modal -->
+    <div class="modal fade modal-cyber" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="updateProfile()">
+                        <div class="mb-3">
+                            <label class="form-label text-dim">Display Name</label>
+                            <input type="text" x-model="profileForm.display_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-dim">New Password (optional)</label>
+                            <input type="password" x-model="profileForm.password" class="form-control"
+                                placeholder="••••••••">
+                            <small class="text-muted">Leave blank to keep current password</small>
+                        </div>
 
+                        <div x-show="profileMessage"
+                            :class="profileMessage?.type === 'error' ? 'alert alert-danger' : 'alert alert-success'"
+                            x-text="profileMessage?.text" style="display:none;" class="py-2 small"></div>
+
+                        <button type="submit" class="btn btn-cyber mt-2" :disabled="profileLoading">
+                            <span x-show="!profileLoading">Save Changes</span>
+                            <span x-show="profileLoading">Processing...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>

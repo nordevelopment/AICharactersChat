@@ -33,7 +33,7 @@ async function seed() {
     if (!existing) {
         await db.run(
             'INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)',
-            [adminEmail, hashedPassword, 'Digital Partner']
+            [adminEmail, hashedPassword, 'SuperAdmin']
         );
         console.log(`[SEED] Success! Default user created: ${adminEmail}`);
         console.log(`[SEED] Your password is still '${adminPass}', but it's now stored as a hash!`);

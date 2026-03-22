@@ -14,10 +14,14 @@ document.addEventListener('alpine:init', () => {
             avatar_prompt: ''
         },
         formInvalid: false,
+        profileForm: { display_name: '', password: '' },
+        profileMessage: null,
+        profileLoading: false,
         bsModal: null,
 
         init() {
             if (!this.user.display_name) window.location.href = '/';
+            this.loadProfile();
             this.bsModal = new bootstrap.Modal(this.$refs.charModal);
             this.loadCharacters();
         },
@@ -80,7 +84,50 @@ document.addEventListener('alpine:init', () => {
             alert('History cleared');
         },
 
-        logout() {
+        loadProfile() {
+            this.profileForm.display_name = this.user.display_name || '';
+            this.profileForm.password = '';
+        },
+
+        openProfileModal() {
+            this.loadProfile();
+            this.profileMessage = null;
+            const modal = new bootstrap.Modal(document.getElementById('profileModal'));
+            modal.show();
+        },
+
+        async updateProfile() {
+            this.profileLoading = true;
+            this.profileMessage = null;
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.profileForm)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    this.user = result.user;
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    this.profileMessage = { type: 'success', text: 'Profile updated' };
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+                        if (modal) modal.hide();
+                    }, 1000);
+                } else {
+                    this.profileMessage = { type: 'error', text: result.error || 'Update failed' };
+                }
+            } catch (err) {
+                this.profileMessage = { type: 'error', text: 'Network error' };
+            } finally {
+                this.profileLoading = false;
+            }
+        },
+
+        async logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+            } catch (e) { }
             localStorage.removeItem('user');
             window.location.href = '/';
         }
