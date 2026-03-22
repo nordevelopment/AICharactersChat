@@ -38,6 +38,8 @@
 3.  **Smart Context Management (Summarization)**: When the chat history gets too long, the system automatically generates a concise summary to keep the AI in focus and save on tokens.
 4.  **Markdown Support**: Full support for bold, italics, lists, and code blocks.
 5.  **Image Uploads**: Process and send images to vision-enabled models with automatic resizing via `sharp`.
+6.  **User Profile Management**: Update your display name and change your password directly from the new cyberpunk navigation menu.
+7.  **Global Navigation**: A unified and streamlined navigation experience across all pages (Chat, Characters, Settings).
 
 ---
 
