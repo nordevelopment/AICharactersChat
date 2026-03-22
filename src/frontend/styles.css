@@ -64,6 +64,7 @@ code {
     max-width: 400px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
     animation: fadeIn 0.8s ease;
+    margin: 80px auto 20px auto;
 }
 
 .btn-cyber {
