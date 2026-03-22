@@ -15,9 +15,22 @@ document.addEventListener('alpine:init', () => {
 
         async init() {
             if (!this.user.display_name) {
-                window.location.href = '/';
+                this.logout();
                 return;
             }
+
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            // Проверка жива ли сессия на бэке
+            try {
+                const res = await fetch(`${apiBase}/me`);
+                if (!res.ok) {
+                    this.logout();
+                    return;
+                }
+            } catch (e) {
+                console.error("Auth check failed", e);
+            }
+
             this.loadProfile();
             await this.loadCharacters();
 
@@ -49,7 +62,8 @@ document.addEventListener('alpine:init', () => {
             this.profileLoading = true;
             this.profileMessage = null;
             try {
-                const response = await fetch('/api/profile', {
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/profile`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.profileForm)
@@ -76,7 +90,12 @@ document.addEventListener('alpine:init', () => {
 
         async loadCharacters() {
             try {
-                const response = await fetch('/api/characters');
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/characters`);
+                if (response.status === 401) {
+                    this.logout();
+                    return;
+                }
                 this.characters = await response.json();
                 if (this.characters.length > 0 && !this.currentCharacter) {
                     this.selectCharacter(this.characters[0]);
@@ -94,7 +113,8 @@ document.addEventListener('alpine:init', () => {
             this.clearImage();
 
             try {
-                const response = await fetch(`/api/history?character_id=${char.id}`);
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/history?character_id=${char.id}`);
                 const history = await response.json();
                 if (history.length === 0 && char.first_message) {
                     this.messages = [{ role: 'assistant', content: char.first_message }];
@@ -123,7 +143,8 @@ document.addEventListener('alpine:init', () => {
             this.typingMessage = '';
 
             try {
-                const response = await fetch('/api/chat', {
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -190,7 +211,8 @@ document.addEventListener('alpine:init', () => {
         async clearHistory() {
             if (!this.currentCharacter || !confirm('Clear history for this character?')) return;
             try {
-                await fetch(`/api/history/${this.currentCharacter.id}`, { method: 'DELETE' });
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                await fetch(`${apiBase}/history/${this.currentCharacter.id}`, { method: 'DELETE' });
                 this.messages = this.currentCharacter.first_message
                     ? [{ role: 'assistant', content: this.currentCharacter.first_message }]
                     : [];
@@ -201,10 +223,12 @@ document.addEventListener('alpine:init', () => {
 
         async logout() {
             try {
-                await fetch('/api/logout', { method: 'POST' });
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                await fetch(`${apiBase}/logout`, { method: 'POST' });
             } catch (e) { }
             localStorage.removeItem('user');
-            window.location.href = '/';
+            const appPrefix = window.APP_CONFIG?.appPrefix || '';
+            window.location.href = appPrefix + '/';
         },
 
         renderMarkdown(content) {

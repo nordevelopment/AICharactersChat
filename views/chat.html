@@ -7,13 +7,14 @@
     <title>AI Character Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <link rel="stylesheet" href="/public/styles.css?v=10">
+    <script src="public/config.js"></script>
+    <link rel="stylesheet" href="public/styles.css?v=10">
 </head>
 
-<body class="has-navbar" x-data="chatApp" x-cloak>
+<body class="has-navbar" x-data="{ ...chatApp(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-cloak>
     <nav class="navbar navbar-expand-lg navbar-cyber">
         <div class="container-fluid">
-            <a class="navbar-brand navbar-brand-cyber" href="/chat">AI Character Chat</a>
+            <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
             <div class="navbar-collapse" id="navbarNav">
                 <div class="dropdown">
                     <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
@@ -25,10 +26,10 @@
 
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
                         <li class="nav-item">
-                            <a class="nav-link nav-link-cyber active" href="/chat">Chat</a>
+                            <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" href="/characters">Characters</a>
+                            <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
                         </li>
                         <li><a class="dropdown-item dropdown-item-cyber" href="#"
                                 @click.prevent="openProfileModal()">Profile Settings</a></li>
@@ -47,7 +48,7 @@
         <div class="sidebar" :class="{ 'active': sidebarActive }" id="sidebar" @click.away="sidebarActive = false">
             <div class="sidebar-header">
                 <h4 class="mb-3">Characters</h4>
-                <a href="/characters" class="btn btn-sm w-100 manage-btn">Manage Characters</a>
+                <a :href="prefix + '/characters'" class="btn btn-sm w-100 manage-btn">Manage Characters</a>
             </div>
             <div class="character-list">
                 <template x-for="char in characters" :key="char.id">
@@ -188,7 +189,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="/public/app_chat.js?v=10"></script>
+    <script src="public/app_chat.js?v=10"></script>
 </body>
 
 </html>

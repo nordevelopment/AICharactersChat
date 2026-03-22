@@ -11,8 +11,9 @@
 Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Character Chat** is different. It’s built on a simple philosophy: **Keep it Easy.**
 
 1. `npm install`
-2. `npm run seed`
-3. **Start Roleplaying.**
+2. `npm run db:reset`
+3. `npm run db:seed`
+4. **Start Roleplaying.**
 
 ---
 
@@ -111,9 +112,10 @@ npm install
 ```
 
 ### 2. Initial Setup
-Create the admin user and initial characters with the seeding script:
+Create the new database, and the admin user and initial characters with the seeding script:
 ```bash
-npm run seed
+npm run db:reset
+npm run db:seed
 ```
 
 ### 3. Configure Environment

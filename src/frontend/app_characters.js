@@ -19,15 +19,36 @@ document.addEventListener('alpine:init', () => {
         profileLoading: false,
         bsModal: null,
 
-        init() {
-            if (!this.user.display_name) window.location.href = '/';
+        async init() {
+            if (!this.user.display_name) {
+                this.logout();
+                return;
+            }
+
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            // Проверка жива ли сессия на бэке
+            try {
+                const res = await fetch(`${apiBase}/me`);
+                if (!res.ok) {
+                    this.logout();
+                    return;
+                }
+            } catch (e) {
+                console.error("Auth check failed", e);
+            }
+
             this.loadProfile();
             this.bsModal = new bootstrap.Modal(this.$refs.charModal);
             this.loadCharacters();
         },
 
         async loadCharacters() {
-            const res = await fetch('/api/characters');
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            const res = await fetch(`${apiBase}/characters`);
+            if (res.status === 401) {
+                this.logout();
+                return;
+            }
             this.characters = await res.json();
         },
 
@@ -50,7 +71,8 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const url = this.form.slug ? `/api/characters/${this.form.slug}` : '/api/characters';
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            const url = this.form.slug ? `${apiBase}/characters/${this.form.slug}` : `${apiBase}/characters`;
             const method = this.form.slug ? 'PUT' : 'POST';
 
             try {
@@ -73,14 +95,16 @@ document.addEventListener('alpine:init', () => {
 
         async deleteCharacter(slug) {
             if (!confirm('Delete this character and all their history?')) return;
-            await fetch(`/api/characters/${slug}`, { method: 'DELETE' });
-            await fetch(`/api/history/${slug}`, { method: 'DELETE' });
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            await fetch(`${apiBase}/characters/${slug}`, { method: 'DELETE' });
+            await fetch(`${apiBase}/history/${slug}`, { method: 'DELETE' });
             this.loadCharacters();
         },
 
         async clearAllHistory() {
             if (!confirm('DANGER: Clear ALL chat history?')) return;
-            await fetch('/api/history/all', { method: 'DELETE' });
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+            await fetch(`${apiBase}/history/all`, { method: 'DELETE' });
             alert('History cleared');
         },
 
@@ -100,7 +124,8 @@ document.addEventListener('alpine:init', () => {
             this.profileLoading = true;
             this.profileMessage = null;
             try {
-                const response = await fetch('/api/profile', {
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/profile`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(this.profileForm)
@@ -126,10 +151,12 @@ document.addEventListener('alpine:init', () => {
 
         async logout() {
             try {
-                await fetch('/api/logout', { method: 'POST' });
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                await fetch(`${apiBase}/logout`, { method: 'POST' });
             } catch (e) { }
             localStorage.removeItem('user');
-            window.location.href = '/';
+            const appPrefix = window.APP_CONFIG?.appPrefix || '';
+            window.location.href = appPrefix + '/';
         }
     }));
 });

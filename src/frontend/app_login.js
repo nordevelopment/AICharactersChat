@@ -9,7 +9,8 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
             this.errorMessage = '';
             try {
-                const response = await fetch('/api/login', {
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                const response = await fetch(`${apiBase}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: this.email, password: this.password })
@@ -17,7 +18,8 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
                 if (data.success) {
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    window.location.href = '/chat';
+                    const appPrefix = window.APP_CONFIG?.appPrefix || '';
+                    window.location.href = appPrefix + '/chat';
                 } else {
                     this.errorMessage = data.error || 'Login failed';
                 }
@@ -28,9 +30,20 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        init() {
+        async init() {
             if (localStorage.getItem('user')) {
-                window.location.href = '/chat';
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                try {
+                    const res = await fetch(`${apiBase}/me`);
+                    if (res.ok) {
+                        const appPrefix = window.APP_CONFIG?.appPrefix || '';
+                        window.location.href = appPrefix + '/chat';
+                    } else {
+                        localStorage.removeItem('user');
+                    }
+                } catch (e) {
+                    // Ignore errors, let user try to login manually
+                }
             }
         }
     }));
