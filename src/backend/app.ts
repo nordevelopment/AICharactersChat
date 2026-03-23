@@ -23,6 +23,7 @@ declare module 'fastify' {
 
 export async function createApp() {
   const server = fastify({
+    bodyLimit: 5242880, // 5MB
     logger: {
       level: 'info',
       transport: {

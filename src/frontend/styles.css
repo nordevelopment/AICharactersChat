@@ -351,6 +351,11 @@ code {
     max-height: 150px;
 }
 
+.chat-img img {
+    max-height: 150px;
+    width: auto;
+}
+
 
 /* Helper Buttons */
 .manage-btn {
