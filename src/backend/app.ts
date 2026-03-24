@@ -1,3 +1,4 @@
+import path from 'path';
 import fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { FastifySSEPlugin } from 'fastify-sse-v2';
@@ -7,6 +8,7 @@ import fastifySession from '@fastify/session';
 import { characterRoutes } from './routes/character.routes';
 import { chatRoutes } from './routes/chat.routes';
 import { authRoutes } from './routes/auth.routes';
+import { imageRoutes } from './routes/image.routes';
 
 declare module 'fastify' {
   export interface FastifyInstance {
@@ -64,15 +66,24 @@ export async function createApp() {
     logLevel: 'warn'
   });
 
+  await server.register(fastifyStatic, {
+    root: path.join(process.cwd(), 'storage', 'generated'),
+    prefix: '/storage/generated/',
+    decorateReply: false,
+    logLevel: 'warn'
+  });
+
   // Views serving (direct HTML files)
   server.get('/', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('index.html', config.viewsRoot));
   server.get('/chat', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
   server.get('/characters', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));
+  server.get('/image-gen', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('image-gen.html', config.viewsRoot));
 
   // Application Routes
   await server.register(authRoutes);
   await server.register(characterRoutes);
   await server.register(chatRoutes);
+  await server.register(imageRoutes);
 
   return server;
 }

@@ -23,6 +23,9 @@ export const config = {
     exclude: true
   },
   jwtSecret: process.env.JWT_SECRET || 'a-very-long-and-secure-secret-key-that-is-at-least-32-characters-long',
+  togetherApiKey: process.env.TOGETHER_API_KEY || '',
+  togetherApiUrl: process.env.TOGETHER_IMAGE_API_URL || 'https://api.together.xyz/v1/images/generations',
+  togetherImageModel: process.env.TOGETHER_IMAGE_MODEL || 'black-forest-labs/FLUX.2-dev',
   dbFile: path.join(process.cwd(), 'database.sqlite'),
   tempImagesDir: path.join(process.cwd(), 'storage', 'temp_images'),
   maxHistoryMessages: 20,

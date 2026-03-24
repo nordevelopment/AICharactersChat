@@ -39,6 +39,7 @@ I just updated the engine! Now you can:
 - **Marked + Highlight.js** — Full Markdown support with code syntax highlighting.
 - **DOMPurify** — Essential XSS protection.
 - **Sharp** — High-performance image processing for AI input.
+- **Image Generation** — Image generation for AI input. - Together API
 
 ---
 
@@ -125,6 +126,10 @@ PORT=3000
 API_URL=https://openrouter.ai/api/v1/chat/completions
 API_KEY=your_openrouter_api_key_here
 SESSION_SECRET=your_long_random_string_here
+
+TOGETHER_API_KEY=your_together_api_key_here
+TOGETHER_IMAGE_API_URL=https://api.together.xyz/v1/images/generations
+TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
 ```
 
 ### 4. Launch

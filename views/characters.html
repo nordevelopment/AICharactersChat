@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="public/config.js"></script>
-    <link rel="stylesheet" href="public/styles.css?v=8">
+    <link rel="stylesheet" href="public/styles.css?v=15">
 </head>
 
 <body class="has-navbar" x-data="{ ...characterManager(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-cloak>
@@ -14,21 +14,32 @@
     <nav class="navbar navbar-expand-lg navbar-cyber">
         <div class="container-fluid">
             <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
+            <button type="button" id="chat-sidebar-toggle" class="d-lg-none btn btn-outline-info me-2"
+                @click="sidebarActive = !sidebarActive">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
+                    viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+                </svg>
+            </button>
             <div class="navbar-collapse" id="navbarNav">
                 <div class="dropdown">
                     <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
                         aria-expanded="false">
                         <div class="profile-avatar-sm"
                             x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
-                        <span x-text="user.display_name">User</span>
+                        <span>Chat Menu</span>
                     </div>
 
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
                         <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" :href="prefix + '/chat'">Chat</a>
+                            <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link nav-link-cyber active" :href="prefix + '/characters'">Characters</a>
+                            <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
                         </li>
                         <li><a class="dropdown-item dropdown-item-cyber" href="#"
                                 @click.prevent="openProfileModal()">Profile Settings</a></li>
@@ -43,117 +54,118 @@
         </div>
     </nav>
 
-
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="m-0">Character Management</h3>
-        </div>
-
-        <div class="mb-2 row">
-            <div class="col-md-6">
-                <button class="btn btn-cyber" @click="prepareAdd()">+ Add New Character</button>
+    <div class="wrapper">
+        <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="m-0">Character Management</h3>
             </div>
-        </div>
 
-        <div id="character-grid" class="row">
-            <template x-for="char in characters" :key="char.slug">
-                <div class="col-lg-2 col-md-3 col-6">
-                    <div class="character-card text-center">
-                        <template x-if="char.avatar">
-                            <img :src="char.avatar" class="avatar-preview">
-                        </template>
-                        <template x-if="!char.avatar">
-                            <div class="avatar-preview" x-text="char.name[0]"></div>
-                        </template>
-                        <h3 x-text="char.name"></h3>
-                        <div class="d-flex justify-content-center gap-2 mt-4">
-                            <button class="btn btn-sm btn-outline-light" @click="prepareEdit(char)">Edit</button>
-                            <button class="btn btn-sm btn-outline-danger"
-                                @click="deleteCharacter(char.slug)">Delete</button>
+            <div class="mb-2 row">
+                <div class="col-md-6">
+                    <button class="btn btn-cyber" @click="prepareAdd()">+ Add New Character</button>
+                </div>
+            </div>
+
+            <div id="character-grid" class="row">
+                <template x-for="char in characters" :key="char.slug">
+                    <div class="col-lg-2 col-md-3 col-6">
+                        <div class="character-card text-center">
+                            <template x-if="char.avatar">
+                                <img :src="char.avatar" class="avatar-preview">
+                            </template>
+                            <template x-if="!char.avatar">
+                                <div class="avatar-preview" x-text="char.name[0]"></div>
+                            </template>
+                            <h3 x-text="char.name"></h3>
+                            <div class="d-flex justify-content-center gap-2 mt-4">
+                                <button class="btn btn-sm btn-outline-light" @click="prepareEdit(char)">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                    @click="deleteCharacter(char.slug)">Delete</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </template>
-        </div>
+                </template>
+            </div>
 
-        <div class="mt-2 pt-2 border-top border-secondary">
-            <h4 class="mb-2">Global History Management</h4>
-            <div class="card border-danger">
-                <div class="card-body">
-                    <h5 class="card-title text-danger">Danger Zone</h5>
-                    <p class="card-text">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        You can clear chat history for all characters. This action cannot be undone.
-                        <button class="btn btn-outline-danger" @click="clearAllHistory()">Clear ALL History</button>
-                    </p>
+            <div class="mt-2 pt-2 border-top border-secondary">
+                <h4 class="mb-2">Global History Management</h4>
+                <div class="card border-danger">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">Danger Zone</h5>
+                        <p class="card-text">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            You can clear chat history for all characters. This action cannot be undone.
+                            <button class="btn btn-outline-danger" @click="clearAllHistory()">Clear ALL History</button>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Modal for Add/Edit -->
-        <div class="modal fade" id="characterModal" tabindex="-1" x-ref="charModal">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" x-text="form.slug ? 'Edit: ' + form.name : 'Add Character'"></h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="characterForm" class="needs-validation" novalidate
-                            :class="{'was-validated': formInvalid}">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Name *</label>
-                                    <input type="text" x-model="form.name" class="form-control" required minlength="2"
-                                        placeholder="e.g. Natasha">
+            <!-- Modal for Add/Edit -->
+            <div class="modal fade" id="characterModal" tabindex="-1" x-ref="charModal">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" x-text="form.slug ? 'Edit: ' + form.name : 'Add Character'"></h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="characterForm" class="needs-validation" novalidate
+                                :class="{'was-validated': formInvalid}">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Name *</label>
+                                        <input type="text" x-model="form.name" class="form-control" required
+                                            minlength="2" placeholder="e.g. Natasha">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Avatar</label>
+                                        <input type="file" x-model="form.avatar" class="form-control">
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Avatar</label>
-                                    <input type="file" x-model="form.avatar" class="form-control">
+
+                                <div class="mb-3">
+                                    <label class="form-label">System Prompt (Personality)</label>
+                                    <textarea x-model="form.system_prompt" class="form-control" rows="3"
+                                        placeholder="How should the character behave?"></textarea>
                                 </div>
-                            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">System Prompt (Personality)</label>
-                                <textarea x-model="form.system_prompt" class="form-control" rows="3"
-                                    placeholder="How should the character behave?"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Scenario / Context</label>
-                                <textarea x-model="form.scenario" class="form-control" rows="2"
-                                    placeholder="Where are we? What is happening?"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">First Message</label>
-                                <input type="text" x-model="form.first_message" class="form-control"
-                                    placeholder="Greeting from the AI">
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Temperature (0.1 - 1.2)</label>
-                                    <input type="number" x-model="form.temperature" class="form-control" step="0.1"
-                                        min="0.1" max="1.2">
+                                <div class="mb-3">
+                                    <label class="form-label">Scenario / Context</label>
+                                    <textarea x-model="form.scenario" class="form-control" rows="2"
+                                        placeholder="Where are we? What is happening?"></textarea>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Max Tokens</label>
-                                    <input type="number" x-model="form.max_tokens" class="form-control" min="100"
-                                        max="4000" value="">
-                                </div>
-                            </div>
 
-                            <!-- <div class="mb-3">
+                                <div class="mb-3">
+                                    <label class="form-label">First Message</label>
+                                    <input type="text" x-model="form.first_message" class="form-control"
+                                        placeholder="Greeting from the AI">
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Temperature (0.1 - 1.2)</label>
+                                        <input type="number" x-model="form.temperature" class="form-control" step="0.1"
+                                            min="0.1" max="1.2">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Max Tokens</label>
+                                        <input type="number" x-model="form.max_tokens" class="form-control" min="100"
+                                            max="4000" value="">
+                                    </div>
+                                </div>
+
+                                <!-- <div class="mb-3">
                                 <label class="form-label">Avatar Generation Prompt</label>
                                 <input type="text" x-model="form.avatar_prompt" class="form-control"
                                     placeholder="Description for AI image generator">
                             </div> -->
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-cyber" @click="saveCharacter()">Save Character</button>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-cyber" @click="saveCharacter()">Save Character</button>
+                        </div>
                     </div>
                 </div>
             </div>

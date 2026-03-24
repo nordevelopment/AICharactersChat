@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="public/config.js"></script>
+    <link rel="stylesheet" href="public/styles.css?v=15">
+    <!-- custom styles for generator -->
+    <style>
+        .image-preview-container {
+            border: 2px dashed var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .image-preview-container img {
+            max-width: 100%;
+            max-height: 800px;
+            object-fit: contain;
+            border-radius: 6px;
+            z-index: 2;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .image-settings-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .history-grid img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .history-grid img:hover {
+            transform: scale(1.05);
+            border: 1px solid var(--accent-primary);
+        }
+    </style>
+</head>
+
+<body class="has-navbar" x-data="{ ...imageGenerator(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-cloak>
+
+    <nav class="navbar navbar-expand-lg navbar-cyber">
+        <div class="container-fluid">
+            <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
+            <button type="button" id="chat-sidebar-toggle" class="d-lg-none btn btn-outline-info me-2"
+                @click="sidebarActive = !sidebarActive">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
+                    viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                        d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+                </svg>
+            </button>
+            <div class="navbar-collapse" id="navbarNav">
+                <div class="dropdown">
+                    <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <div class="profile-avatar-sm"
+                            x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
+                        <span>Chat Menu</span>
+                    </div>
+
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
+                        </li>
+                        <li><a class="dropdown-item dropdown-item-cyber" href="#"
+                                @click.prevent="openProfileModal()">Profile Settings</a></li>
+                        <li>
+                            <hr class="dropdown-divider border-secondary">
+                        </li>
+                        <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
+                                @click.prevent="logout()">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="m-0">AI Image Generator</h3>
+            </div>
+
+            <div class="row">
+                <!-- Sidebar Settings -->
+                <div class="col-lg-4 mb-4">
+                    <div class="image-settings-panel">
+                        <div class="mb-3">
+                            <label class="form-label text-cyan">Prompt</label>
+                            <textarea x-model="form.prompt" class="form-control" rows="5"
+                                placeholder="Describe the image you want to see... Cinematic lighting, 8k resolution, photorealistic..."
+                                style="background: rgba(0,0,0,0.5); border-color: var(--border-color); color: #fff;"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-cyan">Aspect Ratio</label>
+                            <select x-model="form.aspect_ratio" class="form-select bg-dark text-light border-secondary">
+                                <option value="1:1">1:1 Square</option>
+                                <option value="3:4">3:4 Portrait</option>
+                                <option value="4:3">4:3 Landscape</option>
+                                <option value="9:16">9:16 Mobile</option>
+                                <option value="16:9">16:9 Cinematic</option>
+                                <option value="2:3">2:3 Vertical</option>
+                                <option value="3:2">3:2 Horizontal</option>
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-cyan">Steps</label>
+                                <input type="number" x-model="form.steps"
+                                    class="form-control bg-dark text-light border-secondary" min="1" max="50">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-cyan">Guidance</label>
+                                <input type="number" x-model="form.guidance"
+                                    class="form-control bg-dark text-light border-secondary" step="0.5" min="1"
+                                    max="20">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-cyber w-100 py-3 d-flex justify-content-center align-items-center gap-2"
+                            @click="generateImage()" :disabled="loading || !form.prompt.trim()">
+                            <span x-show="!loading">Generate Image</span>
+                            <span x-show="loading">Generating...</span>
+                            <div x-show="loading" class="spinner-border spinner-border-sm text-light" role="status">
+                            </div>
+                        </button>
+
+                        <!-- Alert Message -->
+                        <div x-show="message.text" class="alert mt-3 mb-0"
+                            :class="message.type === 'error' ? 'alert-danger' : 'alert-success'" x-text="message.text"
+                            style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Result View -->
+                <div class="col-lg-8">
+                    <div class="image-preview-container">
+                        <!-- Loading State -->
+                        <div class="loading-overlay" x-show="loading" style="display: none;">
+                            <div class="spinner-border text-info mb-3" style="width: 3rem; height: 3rem;" role="status">
+                            </div>
+                            <h5 class="text-info glow-text">Synthesizing image...</h5>
+                            <p class="text-secondary small">This might take 10-20 seconds.</p>
+                        </div>
+
+                        <!-- Result Image -->
+                        <template x-if="currentResult">
+                            <div
+                                class="text-center w-100 p-2 h-100 d-flex flex-column align-items-center justify-content-center">
+                                <img :src="currentResult.image_url" alt="Generated Image" class="shadow-lg mb-3">
+                                <div class="d-flex gap-2">
+                                    <a :href="currentResult.image_url" target="_blank"
+                                        class="btn btn-sm btn-outline-info">
+                                        Full Size
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        @click="copyPrompt(currentResult.prompt)">
+                                        Copy Prompt
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty State -->
+                        <template x-if="!currentResult && !loading">
+                            <div class="text-center text-secondary">
+                                <i class="bi bi-image" style="font-size: 4rem; opacity: 0.5;"></i>
+                                <p class="mt-2">Image will appear here</p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-4" x-show="history.length > 0" style="display: none;">
+                        <h5 class="text-secondary mb-3">Recent Generations</h5>
+                        <div class="row g-2 history-grid">
+                            <template x-for="(item, index) in history" :key="index">
+                                <div class="col-3 col-md-2">
+                                    <div class="position-relative">
+                                        <img :src="item.image_url" :title="item.prompt" @click="viewHistoryItem(item)">
+                                        <button
+                                            class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
+                                            style="transform: translate(30%, -30%); padding: 0 6px; z-index: 5;"
+                                            title="Delete Image"
+                                            @click="deleteHistoryItem(item, index)">&times;</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="public/app_image_gen.js?v=2"></script>
+</body>
+
+</html>
