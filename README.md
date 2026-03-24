@@ -1,14 +1,15 @@
-# AI Character Chat 🤖🎭 
+# AI Character Chat 🤖🎭
 > **The "Make it Easy" AI Roleplay Tool.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Fastify](https://img.shields.io/badge/Fastify-5.x-blue.svg)](https://www.fastify.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
 ---
-> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)** 
+> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)**
 
 ### 🚀 Launch & Roleplay. No Bullsh*t.
-Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Character Chat** is different. It’s built on a simple philosophy: **Keep it Easy.**
+Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Character Chat** is different. It's built on a simple philosophy: **Keep it Easy.**
 
 1. `npm install`
 2. `npm run db:reset`
@@ -17,91 +18,157 @@ Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Charac
 
 ---
 
-## 🔥 New: Multi-User & Separate Histories
-I just updated the engine! Now you can:
-* **Be Anyone**: Create different profiles to talk with characters under different names. No more manual renaming every 5 minutes.
-* **Separate Worlds**: Each user has their own chat history. Your dark fantasy RP won't mix with your coding assistant chat.
-* **Easy Switching**: Change your persona in two clicks through the new Cyberpunk nav menu.
+## 🔥 Features
+
+- **Multi-User with Separate Histories**: Each user has their own isolated chat history. Your dark fantasy RP won't mix with your coding assistant chat.
+- **Real-time Streaming (SSE)**: Text flows onto the screen as it's generated — no waiting for full responses.
+- **AI Image Generation**: Generate images via FLUX model on Together AI. Supports 7 aspect ratios, steps, and guidance control.
+- **Smart Context Summarization**: When chat history exceeds the limit, the AI automatically condenses it into a summary to stay focused while saving tokens.
+- **Character Management**: Full CRUD UI at `/characters` — no JSON editing. Per-character temperature, max tokens, system prompt, scenario, and avatar.
+- **Markdown + Code Highlighting**: Full support for bold, italics, lists, and code blocks via Marked + Highlight.js.
+- **Image Uploads to Chat**: Send images to vision-capable models with auto-resizing via Sharp.
+- **Profile Management**: Update display name and password from the nav menu.
+- **Password Security**: Passwords hashed with bcrypt.
 
 ---
 
 ## 🛠 Tech Stack
 
-### Backend:
-- **Fastify** (Node.js + TypeScript) — High-performance, low-overhead framework.
-- **SQLite** — Lightweight local database for chat history.
-- **OpenRouter API** — The brain. Supports any model (Grok, Claude, GPT, etc.) with Server-Sent Events (SSE).
-- **Pino** — Structured logging for easy debugging.
+### Backend
+| Package | Role |
+|---|---|
+| **Fastify 5** (TypeScript) | HTTP server — fast, low-overhead |
+| **SQLite** (`sqlite` + `sqlite3`) | Local database, zero config |
+| **@fastify/session** + **@fastify/cookie** | Session-based auth (PHP-style `$_SESSION`) |
+| **@fastify/multipart** | File upload handling |
+| **@fastify/static** | Static file serving |
+| **axios** | HTTP client for AI API calls |
+| **bcrypt** | Password hashing |
+| **eventsource-parser** | SSE stream parsing from OpenRouter |
+| **fastify-sse-v2** | SSE response to frontend |
+| **sharp** | Image resize/compress before AI vision input |
+| **pino / pino-pretty** | Structured logging |
+| **tsx** | Run TypeScript directly, no compile step in dev |
 
-### Frontend:
-- **Vanilla JavaScript / jQuery** — Keeping it simple and direct.
-- **Bootstrap 5** — Clean and responsive UI.
-- **Marked + Highlight.js** — Full Markdown support with code syntax highlighting.
-- **DOMPurify** — Essential XSS protection.
-- **Sharp** — High-performance image processing for AI input.
-- **Image Generation** — Image generation for AI input. - Together API
+### Frontend
+| Library | Role |
+|---|---|
+| **Alpine.js 3** | Reactive UI without the bloat |
+| **Bootstrap 5** | Layout and components |
+| **Marked** | Markdown rendering |
+| **Highlight.js** | Code syntax highlighting |
+| **DOMPurify** | XSS protection |
+| **Vanilla JS** | Application logic per page |
+
+### AI Services
+| Service | Role |
+|---|---|
+| **OpenRouter API** | Chat completions — supports Grok, Claude, GPT, Llama, etc. |
+| **Together AI** | Image generation via FLUX.2-dev (or any compatible model) |
 
 ---
 
-## ✨ Key Features
+## ✨ Pages
 
-1.  **Character Management UI**: Create, edit, and delete characters directly from a dedicated management dashboard (`/characters`). No manual JSON editing required.
-2.  **Real-time Streaming**: No waiting for the full response. Text flows onto the screen as it's generated (SSE).
-3.  **Smart Context Management (Summarization)**: When the chat history gets too long, the system automatically generates a concise summary to keep the AI in focus and save on tokens.
-4.  **Markdown Support**: Full support for bold, italics, lists, and code blocks.
-5.  **Image Uploads**: Process and send images to vision-enabled models with automatic resizing via `sharp`.
-6.  **User Profile Management**: Update your display name and change your password directly from the new cyberpunk navigation menu.
-7.  **Global Navigation**: A unified and streamlined navigation experience across all pages (Chat, Characters, Settings).
+| Route | Description |
+|---|---|
+| `/` | Login / Register |
+| `/chat` | Main chat interface with SSE streaming |
+| `/characters` | Character management dashboard |
+| `/image-gen` | AI image generator |
 
 ---
 
 ## 🏗 Core Architecture
 
-The project is structured into clear layers to maintain high code quality and prevent "spaghetti" logic:
+```
+src/
+├── backend/
+│   ├── server.ts          # Entry point
+│   ├── app.ts             # Fastify plugin registration
+│   ├── seed.ts            # DB seed script
+│   ├── config/
+│   │   └── config.ts      # All env vars and defaults
+│   ├── database/
+│   │   ├── schema.sql     # Table definitions
+│   │   ├── reset.ts       # Drops and recreates DB
+│   │   └── sqlite.ts      # dbRepo — Repository Pattern
+│   ├── routes/
+│   │   ├── auth.routes.ts      # Login, register, profile
+│   │   ├── character.routes.ts # CRUD for characters
+│   │   ├── chat.routes.ts      # SSE streaming endpoint
+│   │   └── image.routes.ts     # Image generation & history
+│   ├── services/
+│   │   ├── ai.service.ts       # OpenRouter SSE + summarization
+│   │   └── image.service.ts    # Together AI image generation
+│   └── types/
+│       └── *.ts           # TypeScript interfaces
+└── frontend/
+    ├── app_chat.js         # Chat page logic
+    ├── app_characters.js   # Characters page logic
+    ├── app_image_gen.js    # Image gen page logic
+    ├── app_login.js        # Auth page logic
+    ├── config.js           # Runtime config (prefix, etc.)
+    ├── styles.css          # Global styles (cyberpunk theme)
+    └── icons/              # UI icons
 
-- **`config/`**: Constants and settings derived from `.env`.
-- **`database/`**: SQLite interaction using the **Repository Pattern**.
-- **`routes/`**: API endpoints and controller logic.
-- **`services/`**: Core business logic (AI interactions, image processing).
-- **`types/`**: TypeScript interfaces and contracts.
+views/
+├── chat.html
+├── characters.html
+├── image-gen.html
+└── index.html
 
-### 🔑 Session Management (Like Laravel/PHP)
-We use traditional sessions instead of JWT for a simpler, more familiar workflow:
-1.  **Libraries**: Powered by `@fastify/cookie` and `@fastify/session`.
-2.  **Login**: User data is stored in `request.session.user`, behaving exactly like `$_SESSION` in PHP.
-3.  **Cookies**: The server handles the `session_id` cookie automatically. No need to manually manage tokens in headers.
-4.  **Auth Middleware**: The `server.authenticate` decorator checks for valid sessions, returning 401 if unauthorized.
-
-### Data Layer (Repository Pattern)
-Drawing inspiration from Laravel's Eloquent, we use `dbRepo`:
-- Instead of raw queries, use clean methods like `await dbRepo.getUserByEmail(email)`.
-- This ensures the database logic is decoupled from the routes, making it easy to test or switch engines.
+storage/
+└── generated/             # Saved generated images (gitignored)
+```
 
 ---
 
-## 🧠 AI Engine & Parameter Tuning
+## 🔑 Session Auth
 
-The "brains" of the system reside in the `ai.service.ts`. It handles streaming, image compression (1024x1024, 80% quality), and context summarization.
+Session-based auth — no JWT juggling:
+- **Login** → `request.session.user` is set (like PHP's `$_SESSION`)
+- **Cookie** → `session_id` managed server-side automatically
+- **Guard** → `server.authenticate` decorator protects all private routes (returns 401 if no session)
+- **Passwords** → Hashed with `bcrypt` (10 rounds)
 
-### Advanced Configuration
-You can fine-tune the AI's behavior at three different levels:
+---
 
-#### 1. Global Environment (`.env`)
-- **`API_URL`**: Your AI provider endpoint (OpenRouter, OpenAI, etc.).
-- **`AI_DEFAULT_MODEL`**: The fallback model (e.g., `x-ai/grok-2-1212`).
-- **`SESSION_SECRET`**: Secure key for session encryption.
+## 🧠 AI Engine
 
-#### 2. System Logic (`src/backend/config/config.ts`)
-Hardcoded defaults for the application:
-- **`aiTemperature`** (0.7): Creativity level.
-- **`maxHistoryMessages`** (20): Number of messages kept in active memory before summarization triggers.
-- **`aiFrequencyPenalty` / `aiPresencePenalty`**: Controls repetition.
+### Chat (`ai.service.ts`)
+- Streams from OpenRouter via SSE using `eventsource-parser`
+- Builds context: `system_prompt` + `scenario` + history window
+- Auto-summarizes when `messages.length > maxHistoryMessages` (default: 20)
+- Injects summary as a system message to maintain continuity
 
-#### 3. Character Tuning (Database / UI)
-Each character can override global settings:
-- **`temperature`**: Individual "quirkiness" levels.
-- **`system_prompt`**: The most critical part — defines the character's personality and rules.
-- **`scenario`**: Defines the current location or event context.
+### Image Gen (`image.service.ts`, Together AI)
+- Sends prompt + aspect ratio → resolves to FLUX-optimized pixel dimensions (multiples of 32, ~1 MP)
+- Downloads image from remote URL → saves to `storage/generated/`
+- Serves via `/storage/generated/:file` static route
+- Supports: steps, guidance scale, aspect ratio (7 presets), reference images
+
+### Image Resize (Sharp)
+- User-uploaded images for chat: resized to 1024×1024, 80% JPEG quality before sending to vision model
+
+---
+
+## ⚙️ AI Parameter Tuning
+
+#### 1. Per-Environment (`.env`)
+- `AI_DEFAULT_MODEL` — fallback model slug
+- `TOGETHER_IMAGE_MODEL` — image model slug (e.g. `black-forest-labs/FLUX.2-dev`)
+
+#### 2. Per-App (`src/backend/config/config.ts`)
+- `aiTemperature` (0.7) — global creativity default
+- `maxHistoryMessages` (20) — summarization trigger
+- `aiFrequencyPenalty` / `aiPresencePenalty` — repetition control
+
+#### 3. Per-Character (UI / DB)
+- `temperature` — individual creativity override
+- `max_tokens` — response length cap
+- `system_prompt` — personality definition
+- `scenario` — current context/location
 
 ---
 
@@ -112,21 +179,28 @@ Each character can override global settings:
 npm install
 ```
 
-### 2. Initial Setup
-Create the new database, and the admin user and initial characters with the seeding script:
+### 2. Reset & Seed Database
 ```bash
 npm run db:reset
 npm run db:seed
 ```
+> Creates tables, admin user, and example characters.
 
 ### 3. Configure Environment
-Create a `.env` file in the root directory (use `.env.example` as a template):
+Copy `.env.example` to `.env` and fill in your keys:
 ```env
 PORT=3000
+HOST=0.0.0.0
+
+# Chat AI (OpenRouter)
 API_URL=https://openrouter.ai/api/v1/chat/completions
 API_KEY=your_openrouter_api_key_here
-SESSION_SECRET=your_long_random_string_here
+AI_DEFAULT_MODEL=x-ai/grok-2-1212
 
+# Session
+SESSION_SECRET=your_long_random_string_here_min_32_chars
+
+# Image Generation (Together AI)
 TOGETHER_API_KEY=your_together_api_key_here
 TOGETHER_IMAGE_API_URL=https://api.together.xyz/v1/images/generations
 TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
@@ -134,7 +208,7 @@ TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
 
 ### 4. Launch
 ```bash
-# Development (with hot-reload)
+# Development (hot-reload via tsx watch)
 npm run dev
 
 # Production
@@ -144,15 +218,17 @@ npm run start
 
 ---
 
-## 📂 Project Structure
+## � Database Schema
 
-- `src/backend/` — Fastify server logic.
-- `src/frontend/` — Client-side scripts and styles.
-- `views/` — HTML templates.
-- `database.sqlite` — Local storage for chat logs and character definitions.
-- `storage/temp_images/` — Temporary storage for image uploads.
+| Table | Key Columns |
+|---|---|
+| `users` | `id`, `email`, `password` (bcrypt), `display_name` |
+| `characters` | `id`, `slug`, `name`, `system_prompt`, `scenario`, `first_message`, `temperature`, `max_tokens`, `avatar` |
+| `messages` | `id`, `user_id`, `character_id`, `role`, `content`, `is_greeting`, `timestamp` |
+
+Messages are cascade-deleted when a user or character is removed.
 
 ---
 
-*Built with a touch of sarcasm and faith in a digital future.*
-
+*Built with a touch of sarcasm and faith in a digital future.*  
+*Author: Norayr Petrosyan — [MIT License](LICENSE)*
