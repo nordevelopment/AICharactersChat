@@ -35,20 +35,20 @@ export const dbRepo = {
   },
 
   async createCharacter(char: Partial<Character>) {
-    const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, avatar_prompt } = char;
+    const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar } = char;
     await db.run(
-      `INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, avatar_prompt) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '', avatar_prompt || '']
+      `INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '']
     );
     return await this.getCharacterBySlug(slug!);
   },
 
   async updateCharacter(slug: string, char: Partial<Character>) {
-    const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, avatar_prompt } = char;
+    const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar } = char;
     await db.run(
-      `UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=?, avatar_prompt=? WHERE slug=?`,
-      [name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, avatar_prompt, slug]
+      `UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=? WHERE slug=?`,
+      [name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, slug]
     );
     return await this.getCharacterBySlug(slug);
   },

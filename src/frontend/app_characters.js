@@ -11,7 +11,6 @@ document.addEventListener('alpine:init', () => {
             first_message: '',
             temperature: 0.8,
             max_tokens: 200,
-            avatar_prompt: ''
         },
         formInvalid: false,
         profileForm: { display_name: '', password: '' },
@@ -53,7 +52,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         prepareAdd() {
-            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 200, avatar_prompt: '' };
+            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 200 };
             this.formInvalid = false;
             this.bsModal.show();
         },

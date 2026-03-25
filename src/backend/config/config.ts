@@ -13,7 +13,7 @@ export const config = {
   aiTopP: 0.9,
   aiFrequencyPenalty: 0.5,
   aiPresencePenalty: 0.5,
-  aiMaxTokens: 200,
+  aiMaxTokens: 250,
   aiSafePrompt: false,
   aiProvider: {
     sort: 'throughput'

@@ -28,7 +28,7 @@ export class ImageService {
             return { success: false, error: 'Missing Together AI configuration' };
         }
 
-        const aspectRatio = options.aspect_ratio || '3:4';
+        const aspectRatio = options.aspect_ratio || '1:1';
         const [width, height] = this.getDimensions(aspectRatio);
 
         const safePrompt = prompt.trim();

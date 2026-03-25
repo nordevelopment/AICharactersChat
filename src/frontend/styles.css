@@ -36,10 +36,10 @@ body {
     height: 100vh;
 }
 
-pre{
-  background: #20393f;
-  padding: 10px;
-  border-radius: 10px;
+pre {
+    background: #20393f;
+    padding: 10px;
+    border-radius: 10px;
 }
 
 code {
@@ -83,10 +83,8 @@ code {
     background: var(--accent-glow);
     color: #e0e3e5;
     border: none;
-    border-radius: 12px;
-    padding: 10px 16px;
-    width: 100%;
-    margin-top: 10px;
+    border-radius: 10px;
+    padding: 8px 14px;
     box-shadow: -1px 2px 5px rgba(0, 242, 255, 0.3);
 }
 
@@ -108,6 +106,12 @@ code {
 }
 
 .form-control::placeholder {
+    color: var(--text-dim);
+}
+
+select.form-control option {
+    background: var(--bg-deep);
+    border: 1px solid var(--glass-border);
     color: var(--text-dim);
 }
 
@@ -354,9 +358,15 @@ code {
 }
 
 .chat-img {
-    max-height: 150px;
+    width: 150px;
+    height: 150px;
 }
 
+.chat-img img {
+    max-height: 150px;
+    max-width: 150px;
+    object-fit: cover;
+}
 
 /* Helper Buttons */
 .manage-btn {

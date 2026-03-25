@@ -117,18 +117,17 @@
 
             <div class="row">
                 <!-- Sidebar Settings -->
-                <div class="col-lg-4 mb-4">
+                <div class="col-lg-5 mb-4">
                     <div class="image-settings-panel">
                         <div class="mb-3">
                             <label class="form-label text-cyan">Prompt</label>
                             <textarea x-model="form.prompt" class="form-control" rows="5"
-                                placeholder="Describe the image you want to see... Cinematic lighting, 8k resolution, photorealistic..."
-                                style="background: rgba(0,0,0,0.5); border-color: var(--border-color); color: #fff;"></textarea>
+                                placeholder="Describe the image you want to see..."></textarea>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-cyan">Aspect Ratio</label>
-                            <select x-model="form.aspect_ratio" class="form-select bg-dark text-light border-secondary">
+                            <select x-model="form.aspect_ratio" class="form-control">
                                 <option value="1:1">1:1 Square</option>
                                 <option value="3:4">3:4 Portrait</option>
                                 <option value="4:3">4:3 Landscape</option>
@@ -142,13 +141,11 @@
                         <div class="row mb-3">
                             <div class="col-6">
                                 <label class="form-label text-cyan">Steps</label>
-                                <input type="number" x-model="form.steps"
-                                    class="form-control bg-dark text-light border-secondary" min="1" max="50">
+                                <input type="number" x-model="form.steps" class="form-control" min="1" max="50">
                             </div>
                             <div class="col-6">
                                 <label class="form-label text-cyan">Guidance</label>
-                                <input type="number" x-model="form.guidance"
-                                    class="form-control bg-dark text-light border-secondary" step="0.5" min="1"
+                                <input type="number" x-model="form.guidance" class="form-control" step="0.5" min="1"
                                     max="20">
                             </div>
                         </div>
@@ -169,7 +166,7 @@
                 </div>
 
                 <!-- Result View -->
-                <div class="col-lg-8">
+                <div class="col-lg-7">
                     <div class="image-preview-container">
                         <!-- Loading State -->
                         <div class="loading-overlay" x-show="loading" style="display: none;">
