@@ -1,17 +1,13 @@
 import bcrypt from 'bcrypt';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import path from 'path';
 
 async function seed() {
     const DB_FILE = path.join(process.cwd(), 'database.sqlite');
-    const db = await open({
-        filename: DB_FILE,
-        driver: sqlite3.Database
-    });
+    const db = new Database(DB_FILE);
 
     // Убедимся, что таблицы созданы (хотя server.ts тоже это делает)
-    await db.exec(`
+    db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
@@ -28,22 +24,19 @@ async function seed() {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(adminPass, saltRounds);
 
-    const existing = await db.get('SELECT id FROM users WHERE email = ?', [adminEmail]);
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
 
     if (!existing) {
-        await db.run(
-            'INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)',
-            [adminEmail, hashedPassword, 'SuperAdmin']
-        );
+        db.prepare('INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)').run(adminEmail, hashedPassword, 'SuperAdmin');
         console.log(`[SEED] Success! Default user created: ${adminEmail}`);
         console.log(`[SEED] Your password is still '${adminPass}', but it's now stored as a hash!`);
     } else {
         // Если пользователь уже есть, обновим его пароль на всякий случай (для рефакторинга)
-        await db.run('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, adminEmail]);
+        db.prepare('UPDATE users SET password = ? WHERE email = ?').run(hashedPassword, adminEmail);
         console.log(`[SEED] User ${adminEmail} already exists. Password updated to hashed version.`);
     }
 
-    await db.close();
+    db.close();
 }
 
 seed().catch(err => {

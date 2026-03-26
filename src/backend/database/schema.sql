@@ -29,7 +29,8 @@ CREATE TABLE characters (
   scenario TEXT,
   temperature REAL DEFAULT 0.8,
   max_tokens INTEGER DEFAULT 250,
-  avatar TEXT,  
+  avatar TEXT,
+  tools INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -26,14 +26,26 @@ declare module 'fastify' {
 export async function createApp() {
   const server = fastify({
     bodyLimit: 5242880, // 5MB
-    logger: {
+    logger: config.debugRequests ? {
       level: 'info',
       transport: {
         target: 'pino-pretty',
         options: { colorize: true }
       }
-    }
+    } : false
   });
+
+  // Сохраняем логгер для AI логов, даже если общие логи отключены
+  const aiLogger = config.debugRequests ? server.log : {
+    info: (data: any, message: string) => {
+      if (config.debugAi) {
+        console.log(`[AI SERVICE] ${message}`, data);
+      }
+    },
+    error: (data: any, message: string) => {
+      console.error(`[AI SERVICE ERROR] ${message}`, data);
+    }
+  };
 
   // Plugins
   await server.register(FastifySSEPlugin);
@@ -82,7 +94,7 @@ export async function createApp() {
   // Application Routes
   await server.register(authRoutes);
   await server.register(characterRoutes);
-  await server.register(chatRoutes);
+  await server.register(chatRoutes, { logger: aiLogger });
   await server.register(imageRoutes);
 
   return server;

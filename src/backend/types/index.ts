@@ -8,7 +8,7 @@ export interface Character {
   temperature: number;
   max_tokens: number;
   avatar?: string;
-  avatar_prompt?: string;
+  tools?: number;
   created_at?: string;
 }
 

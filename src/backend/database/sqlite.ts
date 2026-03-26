@@ -1,16 +1,15 @@
-import { open, Database } from 'sqlite';
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import { config } from '../config/config';
 import { Character, ChatMessage, User } from '../types';
 
-let db: Database;
+let db: Database.Database;
 
-export async function initDB() {
-  db = await open({
-    filename: config.dbFile,
-    driver: sqlite3.Database
-  });
-
+export function initDB() {
+  db = new Database(config.dbFile);
+  
+  // Включаем WAL режим для производительности
+  db.pragma('journal_mode = WAL');
+  
   console.log('[DB] SQLite connected and ready.');
   return db;
 }
@@ -22,46 +21,46 @@ export function getDB() {
 
 // Хелперы для работы с данными (Repo Pattern)
 export const dbRepo = {
-  async getCharacters() {
-    return await db.all<Character[]>('SELECT * FROM characters ORDER BY created_at DESC');
+  getCharacters() {
+    return db.prepare('SELECT * FROM characters ORDER BY created_at DESC').all() as Character[];
   },
 
-  async getCharacterBySlug(slug: string) {
-    return await db.get<Character>('SELECT * FROM characters WHERE slug = ?', [slug]);
+  getCharacterBySlug(slug: string) {
+    return db.prepare('SELECT * FROM characters WHERE slug = ?').get(slug) as Character;
   },
 
-  async getCharacterById(id: number) {
-    return await db.get<Character>('SELECT * FROM characters WHERE id = ?', [id]);
+  getCharacterById(id: number) {
+    return db.prepare('SELECT * FROM characters WHERE id = ?').get(id) as Character;
   },
 
-  async createCharacter(char: Partial<Character>) {
-    const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar } = char;
-    await db.run(
-      `INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '']
-    );
-    return await this.getCharacterBySlug(slug!);
+  createCharacter(char: Partial<Character>) {
+    const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools } = char;
+    const stmt = db.prepare(`
+      INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '', tools ? 1 : 0);
+    return this.getCharacterBySlug(slug!);
   },
 
-  async updateCharacter(slug: string, char: Partial<Character>) {
-    const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar } = char;
-    await db.run(
-      `UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=? WHERE slug=?`,
-      [name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, slug]
-    );
-    return await this.getCharacterBySlug(slug);
+  updateCharacter(slug: string, char: Partial<Character>) {
+    const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools } = char;
+    const stmt = db.prepare(`
+      UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=?, tools=? WHERE slug=?
+    `);
+    stmt.run(name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools ? 1 : 0, slug);
+    return this.getCharacterBySlug(slug);
   },
 
-  async deleteCharacter(slug: string) {
-    const char = await this.getCharacterBySlug(slug);
+  deleteCharacter(slug: string) {
+    const char = this.getCharacterBySlug(slug);
     if (char) {
-      await db.run('DELETE FROM characters WHERE id = ?', [char.id]);
+      db.prepare('DELETE FROM characters WHERE id = ?').run(char.id);
     }
   },
 
-  async getChatMessages(characterId: number, userId: number): Promise<ChatMessage[]> {
-    const rows = await db.all('SELECT id, role, content FROM messages WHERE character_id = ? AND user_id = ? ORDER BY timestamp ASC', [characterId, userId]);
+  getChatMessages(characterId: number, userId: number): ChatMessage[] {
+    const rows = db.prepare('SELECT id, role, content FROM messages WHERE character_id = ? AND user_id = ? ORDER BY timestamp ASC').all(characterId, userId) as any[];
     return rows.map(row => ({
       id: row.id,
       role: row.role as any,
@@ -69,37 +68,36 @@ export const dbRepo = {
     }));
   },
 
-  async addMessage(characterId: number, userId: number, message: ChatMessage, isGreeting: number = 0) {
+  addMessage(characterId: number, userId: number, message: ChatMessage, isGreeting: number = 0) {
     const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
-    await db.run(
-      'INSERT INTO messages (character_id, user_id, role, content, is_greeting) VALUES (?, ?, ?, ?, ?)',
-      [characterId, userId, message.role, content, isGreeting]
-    );
+    const stmt = db.prepare('INSERT INTO messages (character_id, user_id, role, content, is_greeting) VALUES (?, ?, ?, ?, ?)');
+    stmt.run(characterId, userId, message.role, content, isGreeting);
   },
 
-  async deleteMessages(ids: number[]) {
+  deleteMessages(ids: number[]) {
     if (ids.length === 0) return;
     const placeholders = ids.map(() => '?').join(',');
-    await db.run(`DELETE FROM messages WHERE id IN (${placeholders})`, ids);
+    const stmt = db.prepare(`DELETE FROM messages WHERE id IN (${placeholders})`);
+    stmt.run(...ids);
   },
 
-  async deleteHistory(characterId: number, userId: number) {
-    await db.run('DELETE FROM messages WHERE character_id = ? AND user_id = ?', [characterId, userId]);
+  deleteHistory(characterId: number, userId: number) {
+    db.prepare('DELETE FROM messages WHERE character_id = ? AND user_id = ?').run(characterId, userId);
   },
 
-  async deleteAllHistory(userId: number) {
-    await db.run('DELETE FROM messages WHERE user_id = ?', [userId]);
+  deleteAllHistory(userId: number) {
+    db.prepare('DELETE FROM messages WHERE user_id = ?').run(userId);
   },
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return await db.get<User>('SELECT * FROM users WHERE email = ?', [email]);
+  getUserByEmail(email: string): User | undefined {
+    return db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User | undefined;
   },
 
-  async getUserById(id: number): Promise<User | undefined> {
-    return await db.get<User>('SELECT * FROM users WHERE id = ?', [id]);
+  getUserById(id: number): User | undefined {
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
   },
 
-  async updateUser(id: number, data: Partial<User>) {
+  updateUser(id: number, data: Partial<User>) {
     const fields: string[] = [];
     const params: any[] = [];
 
@@ -116,7 +114,8 @@ export const dbRepo = {
     if (fields.length === 0) return;
 
     params.push(id);
-    await db.run(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
-    return await this.getUserById(id);
+    const stmt = db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`);
+    stmt.run(...params);
+    return this.getUserById(id);
   }
 };

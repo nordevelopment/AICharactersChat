@@ -5,7 +5,7 @@ import { config } from './config/config';
 const start = async () => {
   try {
     // 1. Инициализация БД
-    await initDB();
+    initDB();
     
     // 2. Создание приложения Fastify
     const server = await createApp();

@@ -32,6 +32,7 @@ export const config = {
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
   debugAi: process.env.AI_DEBUG_LOGS !== 'false', // По умолчанию включено, если не указано обратное
+  debugRequests: process.env.DEBUG_REQUESTS !== 'false', // По умолчанию включены логи запросов
 };
 
 // Простая проверка обязательных переменных

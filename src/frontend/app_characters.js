@@ -11,6 +11,7 @@ document.addEventListener('alpine:init', () => {
             first_message: '',
             temperature: 0.8,
             max_tokens: 200,
+            tools: 0,
         },
         formInvalid: false,
         profileForm: { display_name: '', password: '' },
@@ -52,13 +53,15 @@ document.addEventListener('alpine:init', () => {
         },
 
         prepareAdd() {
-            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 200 };
+            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 200, tools: 0 };
             this.formInvalid = false;
             this.bsModal.show();
         },
 
         prepareEdit(char) {
             this.form = { ...char };
+            // Конвертируем tools из числа в boolean для checkbox
+            this.form.tools = char.tools === 1;
             this.formInvalid = false;
             this.bsModal.show();
         },
@@ -75,10 +78,16 @@ document.addEventListener('alpine:init', () => {
             const method = this.form.slug ? 'PUT' : 'POST';
 
             try {
+                // Преобразуем tools в число для SQLite
+                const formData = { ...this.form };
+                if (typeof formData.tools === 'boolean') {
+                    formData.tools = formData.tools ? 1 : 0;
+                }
+                
                 const res = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.form)
+                    body: JSON.stringify(formData)
                 });
                 if (res.ok) {
                     this.bsModal.hide();

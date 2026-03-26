@@ -287,6 +287,10 @@ select.form-control option {
     border-bottom-left-radius: 2px;
 }
 
+.message img {
+    height: 150px;
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;
@@ -329,9 +333,9 @@ select.form-control option {
     padding: 5px;
     flex-grow: 1;
     resize: none;
-    overflow-y: hidden;
+    /* overflow-y: hidden; */
     height: 36px;
-    max-height: 100px;
+    max-height: 150px;
     line-height: 1.3;
 }
 

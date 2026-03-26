@@ -12,7 +12,7 @@ export async function authRoutes(server: FastifyInstance) {
       }
 
       // 1. Ищем пользователя в БД
-      const user = await dbRepo.getUserByEmail(email);
+      const user = dbRepo.getUserByEmail(email);
 
       if (!user) {
         // Даже если пользователя нет, лучше сказать общую ошибку для безопасности (чтобы не чекать емейлы)
@@ -64,7 +64,7 @@ export async function authRoutes(server: FastifyInstance) {
         updateData.password = await bcrypt.hash(password, 10);
       }
 
-      const updatedUser = await dbRepo.updateUser(userId, updateData);
+      const updatedUser = dbRepo.updateUser(userId, updateData);
 
       if (!updatedUser) {
         return reply.code(404).send({ error: 'User not found' });
