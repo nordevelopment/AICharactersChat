@@ -1,7 +1,7 @@
 {
   "name": "aicharacterchat",
   "version": "1.0.0",
-  "description": "A lightweight, self-hosted AI character chat app with SSE streaming and automated summarization.",
+  "description": "A lightweight, self-hosted AI characters and agents chat app with SSE streaming and automated summarization.",
   "main": "dist/backend/server.js",
   "scripts": {
     "build": "tsc",

@@ -8,8 +8,8 @@
 ---
 > "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)**
 
-### 🚀 Launch & Roleplay. No Bullsh*t.
-Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Character Chat** is different. It's built on a simple philosophy: **Keep it Easy.**
+### 🚀 Launch & Roleplay.
+Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Characters Chat** is different. It's built on a simple philosophy: **Keep it Easy.**
 
 1. `npm install`
 2. `npm run db:reset`
@@ -22,13 +22,14 @@ Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Charac
 
 - **Multi-User with Separate Histories**: Each user has their own isolated chat history. Your dark fantasy RP won't mix with your coding assistant chat.
 - **Real-time Streaming (SSE)**: Text flows onto the screen as it's generated — no waiting for full responses.
+- **Character Management**: Full CRUD UI at `/characters` — no JSON editing. Per-character temperature, max tokens, system prompt, scenario, and avatar.
 - **AI Image Generation**: Generate images via FLUX model on Together AI. Supports 7 aspect ratios, steps, and guidance control.
 - **Smart Context Summarization**: When chat history exceeds the limit, the AI automatically condenses it into a summary to stay focused while saving tokens.
-- **Character Management**: Full CRUD UI at `/characters` — no JSON editing. Per-character temperature, max tokens, system prompt, scenario, and avatar.
 - **Markdown + Code Highlighting**: Full support for bold, italics, lists, and code blocks via Marked + Highlight.js.
 - **Image Uploads to Chat**: Send images to vision-capable models with auto-resizing via Sharp.
 - **Profile Management**: Update display name and password from the nav menu.
 - **Password Security**: Passwords hashed with bcrypt.
+- **Tools (Agents)**: AI can create text files, read text files, and generate images.
 
 ---
 
@@ -103,6 +104,9 @@ src/
 │   │   └── image.service.ts    # Together AI image generation
 │   └── types/
 │       └── *.ts           # TypeScript interfaces
+│   └── tools/
+│       ├── definitions.ts  # Tool definitions for Grok
+│       └── handlers.ts     # Tool implementations
 └── frontend/
     ├── app_chat.js         # Chat page logic
     ├── app_characters.js   # Characters page logic
@@ -151,6 +155,11 @@ Session-based auth — no JWT juggling:
 ### Image Resize (Sharp)
 - User-uploaded images for chat: resized to 1024×1024, 80% JPEG quality before sending to vision model
 
+### Tools (Agents)
+- AI can create text files, read text files, and generate images.
+- Tool definitions in `src/backend/tools/definitions.ts`
+- Tool handlers in `src/backend/tools/handlers.ts`
+
 ---
 
 ## ⚙️ AI Parameter Tuning
@@ -169,6 +178,9 @@ Session-based auth — no JWT juggling:
 - `max_tokens` — response length cap
 - `system_prompt` — personality definition
 - `scenario` — current context/location
+
+#### 4. Per-Tool (UI / DB)
+- `enabled` — enable/disable tool
 
 ---
 
@@ -218,16 +230,8 @@ npm run start
 
 ---
 
-## � Database Schema
-
-| Table | Key Columns |
-|---|---|
-| `users` | `id`, `email`, `password` (bcrypt), `display_name` |
-| `characters` | `id`, `slug`, `name`, `system_prompt`, `scenario`, `first_message`, `temperature`, `max_tokens`, `avatar` |
-| `messages` | `id`, `user_id`, `character_id`, `role`, `content`, `is_greeting`, `timestamp` |
-
-Messages are cascade-deleted when a user or character is removed.
-
+##  Database Schema
+backend/database/schema.sql
 ---
 
 *Built with a touch of sarcasm and faith in a digital future.*  

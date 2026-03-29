@@ -69,7 +69,7 @@ async function handleGenerateImage(args: Record<string, string>): Promise<string
     const { prompt, aspect_ratio } = args;
 
     if (!prompt) {
-        return 'Error: prompt is required for image generation.';
+        return 'Error: prompt is required';
     }
 
     try {
@@ -81,7 +81,8 @@ async function handleGenerateImage(args: Record<string, string>): Promise<string
             return `Error generating image: ${result.error}`;
         }
 
-        return `Image generated successfully! URL: ${result.image_url}`;
+        // Возвращаем сразу Markdown-тег, чтобы модель просто «выплюнула» его в чат
+        return `![Generated Image](${result.image_url})`;
     } catch (error: any) {
         return `Error generating image: ${error.message}`;
     }

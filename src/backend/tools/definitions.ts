@@ -1,8 +1,6 @@
 /**
- * Tool Definitions — описания инструментов для OpenAI-совместимого API.
- * Это то, что видит модель. Добавляй новые инструменты сюда.
- *
- * Формат: https://openrouter.ai/docs/guides/features/tool-calling
+ * Tool Definitions
+ * Format: https://openrouter.ai/docs/guides/features/tool-calling
  */
 
 export interface ToolDefinition {
@@ -50,14 +48,13 @@ const readTextFileTool: ToolDefinition = {
     function: {
         name: 'read_text_file',
         description:
-            'Reads the content of a text file from the sandbox by its filename. ' +
-            'Use this when the user asks to open, read, or show the contents of a file.',
+            'Reads the content of a text plain file by filename.',
         parameters: {
             type: 'object',
             properties: {
                 filename: {
                     type: 'string',
-                    description: 'File Name to read. Example: "my_note.txt".',
+                    description: 'File name to read. Example: "my_note.txt".',
                 },
             },
             required: ['filename'],
@@ -71,8 +68,7 @@ const generateImageTool: ToolDefinition = {
     function: {
         name: 'generate_image',
         description:
-            'Generates an image using AI (FLUX2.dev model) based on a text prompt. ' +
-            'Returns a URL path to the generated image.',
+            'Generates an AI image (FLUX model) from a text prompt. Returns a image url.',
         parameters: {
             type: 'object',
             properties: {
@@ -83,7 +79,7 @@ const generateImageTool: ToolDefinition = {
                 aspect_ratio: {
                     type: 'string',
                     enum: ['1:1', '2:3', '3:2', '3:4', '4:3', '16:9', '9:16'],
-                    description: 'Aspect ratio of the generated image',
+                    description: 'Aspect ratios',
                     default: '1:1',
                 },
             },
@@ -92,9 +88,30 @@ const generateImageTool: ToolDefinition = {
     },
 };
 
-export const ALL_TOOLS: ToolDefinition[] = [
-    createTextFileTool,
-    readTextFileTool,
-    generateImageTool,
-    // searchWebTool,
+/**
+ * Tool Definitions registry.
+ * Add new tools here.
+ */
+export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
+    create_text_file: createTextFileTool,
+    read_text_file: readTextFileTool,
+    generate_image: generateImageTool,
+};
+
+/**
+ * CONFIG: Список инструментов, которые разрешено передавать в ИИ.
+ * Просто закомментируй или удали то, что не нужно.
+ */
+export const ENABLED_TOOLS_LIST = [
+    'generate_image',
+    // 'create_text_file',
+    // 'read_text_file',
 ];
+
+/**
+ * Filtered list of tools based on ENABLED_TOOLS_LIST.
+ * This is what ai.service.ts uses.
+ */
+export const ALL_TOOLS: ToolDefinition[] = ENABLED_TOOLS_LIST
+    .map(name => TOOL_REGISTRY[name])
+    .filter(Boolean);

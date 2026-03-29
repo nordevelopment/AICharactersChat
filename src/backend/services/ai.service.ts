@@ -8,7 +8,7 @@ import { ALL_TOOLS } from '../tools/definitions';
 import { executeTool } from '../tools/handlers';
 
 /**
- * Типизация для OpenAI-совместимых сообщений
+ * OpenAI-compatible message types
  */
 interface AiContentItem {
   type: 'text' | 'image_url';
@@ -23,17 +23,17 @@ interface AiMessage {
 
 export class AiService {
   /**
-   * Суммаризация старых сообщений, чтобы не раздувать контекст.
-   * Вызывается при достижении лимита.
+   * Summarization of old messages to avoid bloating the context.
+   * Called when the limit is reached.
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
     const history = dbRepo.getChatMessages(characterId, userId);
 
-    // Если сообщений меньше 30, не мучаем API
+    // If there are less than 30 messages, don't bother the API
     if (history.length <= 30) return;
 
-    // Берем первые 15 сообщений для суммаризации
-    // (оставляем запас свежих сообщений в истории)
+    // Take the first 15 messages for summarization
+    // (leave a reserve of fresh messages in the history)
     const messagesToSummarize = history.slice(0, 15);
     const idsToDelete = messagesToSummarize.filter(m => m.id).map(m => m.id!);
 
@@ -46,8 +46,8 @@ export class AiService {
 
       const res = await axios.post(config.apiUrl, {
         model: config.aiDefaultModel,
-        temperature: 0.4, // Для суммаризации лучше поменьше креатива
-        max_tokens: 250,
+        temperature: 0.3, // Less creativity for summarization
+        max_tokens: 350,
         messages: [
           { role: 'system', content: prompt },
           ...messagesToSummarize.map(m => ({
@@ -66,7 +66,7 @@ export class AiService {
 
       const summary = res.data.choices?.[0]?.message?.content;
       if (summary) {
-        // Транзакционно удаляем старое и добавляем суммаризацию
+        // Transactionally delete old and add summarization
         dbRepo.deleteMessages(idsToDelete);
         dbRepo.addMessage(characterId, userId, {
           role: 'system',
@@ -84,17 +84,17 @@ export class AiService {
   }
 
   /**
-   * Безопасная обработка изображения с ресайзом
+   * Safe image processing with resizing
    */
   async processImage(base64: string): Promise<string> {
     try {
-      // Чистим base64 от возможных префиксов
+      // Clean base64 from possible prefixes
       const matches = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
       const data = matches ? matches[2] : base64;
 
       const imgBuffer = Buffer.from(data, 'base64');
 
-      // Senior-level обработка: ресайз с сохранением пропорций
+      // Senior-level processing: resize with aspect ratio preservation
       const resizedBuffer = await sharp(imgBuffer)
         .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80, mozjpeg: true })
@@ -108,18 +108,18 @@ export class AiService {
   }
 
   /**
-   * Получение стримингового ответа с гарантированным сохранением контекста
+   * Get streaming response with guaranteed context preservation
    */
   async getStreamingResponse(character: Character, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
-    // 1. Формируем системный промпт
+    // 1. Formulate system prompt
     let baseSystemPrompt = character.system_prompt || 'You are a helpful AI assistant.';
 
-    // Добавляем сценарий, если есть
+    // Add scenario if available
     if (character.scenario) {
-      baseSystemPrompt += `\n\nScenario/Setting:\n${character.scenario}`;
+      baseSystemPrompt += `\nScenario:\n${character.scenario}`;
     }
 
-    // Подстановка переменных {{user}} и {{char}}
+    // Substitute variables {{user}} and {{char}}
     if (userName) {
       baseSystemPrompt = baseSystemPrompt.replace(/{{user}}/g, userName);
     }
@@ -128,7 +128,7 @@ export class AiService {
     const aiMessages: AiMessage[] = [];
     aiMessages.push({ role: 'system', content: baseSystemPrompt });
 
-    // 2. Добавляем последние N сообщений истории (избегаем амнезии)
+    // 2. Add last N messages from history (avoid amnesia)
     const recentHistory = history.slice(-config.maxHistoryMessages);
 
     recentHistory.forEach((msg) => {
@@ -138,7 +138,7 @@ export class AiService {
       });
     });
 
-    // 3. Обработка изображения "на лету", если оно передано отдельно
+    // 3. Image processing on the fly if it is passed separately
     if (imageBase64 && aiMessages.length > 0) {
       const lastMsg = aiMessages[aiMessages.length - 1];
       if (lastMsg.role === 'user' && typeof lastMsg.content === 'string') {
@@ -150,14 +150,14 @@ export class AiService {
       }
     }
 
-    // Добавляем сообщения от инструментов (для второго запроса в tool loop)
+    // Add messages from tools (for the second request in the tool loop)
     if (extraMessages && extraMessages.length > 0) {
       for (const em of extraMessages) {
         aiMessages.push(em);
       }
     }
 
-    // Добавляем инструменты только если персонаж имеет их включенными
+    // Add tools only if the character has them enabled
     const requestBody: Record<string, any> = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
@@ -175,7 +175,7 @@ export class AiService {
 
     logger.info('character', character);
 
-    // Добавляем tools только если у персонажа включены инструменты
+    // Add tools only if the character has them enabled
     if (character.tools === 1) {
       requestBody.tools = ALL_TOOLS;
       requestBody.tool_choice = 'auto';
@@ -192,7 +192,7 @@ export class AiService {
           'Content-Type': 'application/json'
         },
         responseType: 'stream',
-        timeout: 30000 // Ждем не больше 30 секунд
+        timeout: 30000 // Wait no more than 30 seconds
       });
 
       if (config.debugAi && logger) {
@@ -214,12 +214,12 @@ export class AiService {
   }
 
   /**
-   * Высокоуровневый метод — async generator для роута.
-   * Прозрачно обрабатывает tool_calls loop:
-   *   1. Собирает стрим
-   *   2. Если модель вызвала инструменты — выполняет их, добавляет результаты и запрашивает финальный ответ
-   *   3. Стримит финальный текст в виде { reply: string } чанков
-   *   4. По завершении yields { done: true, fullReply: string }
+   * High-level method — async generator for the route.
+   * Transparently handles the tool_calls loop:
+   *   1. Collects the stream
+   *   2. If the model calls tools — executes them, adds the results, and requests a final answer
+   *   3. Streams the final text in { reply: string } chunks
+   *   4. Upon completion, yields { done: true, fullReply: string }
    */
   async *streamChatResponse(
     character: Character,
@@ -229,13 +229,13 @@ export class AiService {
     logger?: any,
     userName?: string
   ): AsyncGenerator<{ reply?: string; done?: boolean; fullReply?: string }> {
-    // ── Первый запрос к AI ─────────────────────────────────────────────
+    // ── First request to AI ─────────────────────────────────────────────
     const response = await this.getStreamingResponse(character, history, message, imageBase64, logger, userName);
 
     let fullReply = '';
     let firstChunkLogged = false;
 
-    // tool_calls accumulator (delta-стрим собирает их по частям)
+    // tool_calls accumulator (delta-stream collects them in parts)
     const pendingToolCalls: Array<{
       index: number;
       id: string;
@@ -243,7 +243,7 @@ export class AiService {
       argumentsRaw: string;
     }> = [];
 
-    // ── Читаем первый стрим ───────────────────────────────────────────
+    // ── Read the first stream ───────────────────────────────────────────
     await new Promise<void>((resolve, reject) => {
       const parser = createParser({
         onEvent: (event) => {
@@ -263,14 +263,14 @@ export class AiService {
             const delta = data.choices?.[0]?.delta;
             if (!delta) return;
 
-            // Обычный текстовый чанк
+            // Normal text chunk
             if (delta.content) {
               fullReply += delta.content;
-              // Сразу ставим в очередь — будет выдано после resolve
-              // (нельзя yield внутри Promise callback, поэтому копим в fullReply)
+              // Immediately queue for output after resolve
+              // (cannot yield inside Promise callback, so accumulate in fullReply)
             }
 
-            // Tool call delta — собираем по кускам
+            // Tool call delta - accumulates tool call data in parts
             if (delta.tool_calls) {
               for (const tc of delta.tool_calls) {
                 const idx = tc.index ?? 0;
@@ -302,11 +302,11 @@ export class AiService {
       })();
     });
 
-    // ── Если были tool_calls — выполняем и делаем второй запрос ──────
+    // ── If tool_calls were detected — execute them and make a second request ───
     if (pendingToolCalls.length > 0) {
       logger?.info({ count: pendingToolCalls.length }, '[AI SERVICE] Tool calls detected, executing');
 
-      // Выполняем инструменты параллельно
+      // Execute tools in parallel
       const toolResults = await Promise.all(
         pendingToolCalls.map(async (tc) => ({
           tool_call_id: tc.id,
@@ -315,8 +315,8 @@ export class AiService {
         }))
       );
 
-      // Строим сообщения для второго запроса:
-      // assistant message с tool_calls + tool result messages
+      // Build messages for the second request:
+      // assistant message with tool_calls + tool result messages
       const assistantMsgWithToolCalls: AiMessage & { tool_calls?: any[] } = {
         role: 'assistant',
         content: fullReply || '',
@@ -334,13 +334,13 @@ export class AiService {
         content: tr.result,
       }));
 
-      // Второй запрос — получаем финальный ответ стримом
+      // Second request — get the final answer as a stream
       const secondResponse = await this.getStreamingResponse(
         character, history, message, imageBase64, logger, userName,
         [assistantMsgWithToolCalls, ...toolResultMessages]
       );
 
-      fullReply = ''; // сбрасываем — будем собирать финальный ответ
+      fullReply = ''; // Reset - will collect the final answer
 
       const parser2 = createParser({
         onEvent: (event) => {
@@ -362,7 +362,7 @@ export class AiService {
         }
       }
     } else {
-      // Нет tool_calls — просто отдаём то что накопили
+      // No tool_calls — just return what we accumulated
       if (fullReply) yield { reply: fullReply };
     }
 
