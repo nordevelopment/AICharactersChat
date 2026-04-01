@@ -25,6 +25,7 @@ declare module 'fastify' {
 
 export async function createApp() {
   const server = fastify({
+    trustProxy: true, // Позволяет корректно определять IP и HTTPS, когда мы за Nginx
     bodyLimit: 5242880, // 5MB
     logger: config.debugRequests ? {
       level: 'info',
@@ -54,12 +55,25 @@ export async function createApp() {
   await server.register(fastifyCookie);
   await server.register(fastifySession, {
     secret: config.jwtSecret, // Используем тот же ключ для подписи сессии
-    cookie: { secure: false } // В идеале true + HTTPS, но для тестов false
+    cookie: { 
+      secure: true, // Включили true для работы за Nginx-HTTPS
+      sameSite: 'lax', // Разрешает навигацию первого уровня (first-party)
+      path: '/' // Куки доступны везде на домене
+    }
   });
 
   // 2. Декоратор аутентификации (теперь через сессии)
   server.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.session.user) {
+      // Логируем ошибку авторизации 
+      // (выведет URL, IP клиента и содержимое Cookie, чтобы мы понимали, потерялась кука или нет)
+      server.log.warn({
+        url: request.url,
+        ip: request.ip,
+        sessionID: request.session?.sessionId, // Существует ли объект сессии?
+        cookies: request.cookies, // Видит ли бэкенд куку вообще?
+      }, 'Unauthorized access attempt: No session found or session expired');
+      
       return reply.code(401).send({ error: 'Unauthorized: No session found' });
     }
   });
