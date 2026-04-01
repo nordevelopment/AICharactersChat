@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
-import { dbRepo } from '../database/sqlite';
+import { User } from '../models/User';
 
 export async function authRoutes(server: FastifyInstance) {
   server.post('/api/login', async (request, reply) => {
@@ -12,7 +12,7 @@ export async function authRoutes(server: FastifyInstance) {
       }
 
       // 1. Ищем пользователя в БД
-      const user = dbRepo.getUserByEmail(email);
+      const user = User.findByEmail(email);
 
       if (!user) {
         // Даже если пользователя нет, лучше сказать общую ошибку для безопасности (чтобы не чекать емейлы)
@@ -64,7 +64,7 @@ export async function authRoutes(server: FastifyInstance) {
         updateData.password = await bcrypt.hash(password, 10);
       }
 
-      const updatedUser = dbRepo.updateUser(userId, updateData);
+      const updatedUser = User.update(userId, updateData);
 
       if (!updatedUser) {
         return reply.code(404).send({ error: 'User not found' });

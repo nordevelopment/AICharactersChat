@@ -2,8 +2,9 @@ import axios from 'axios';
 import sharp from 'sharp';
 import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
-import { dbRepo } from '../database/sqlite';
-import { Character, ChatMessage } from '../types';
+import { ChatMessage, Character as CharacterType } from '../types';
+import { Message } from '../models/Message';
+import { Character } from '../models/Character';
 import { ALL_TOOLS } from '../tools/definitions';
 import { executeTool } from '../tools/handlers';
 
@@ -27,7 +28,7 @@ export class AiService {
    * Called when the limit is reached.
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
-    const history = dbRepo.getChatMessages(characterId, userId);
+    const history = Message.getHistory(characterId, userId);
 
     // If there are less than 30 messages, don't bother the API
     if (history.length <= 30) return;
@@ -67,8 +68,8 @@ export class AiService {
       const summary = res.data.choices?.[0]?.message?.content;
       if (summary) {
         // Transactionally delete old and add summarization
-        dbRepo.deleteMessages(idsToDelete);
-        dbRepo.addMessage(characterId, userId, {
+        Message.deleteBatch(idsToDelete);
+        Message.add(characterId, userId, {
           role: 'system',
           content: `Historical Context Summary: ${summary.trim()}`
         });
@@ -110,7 +111,7 @@ export class AiService {
   /**
    * Get streaming response with guaranteed context preservation
    */
-  async getStreamingResponse(character: Character, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
+  async getStreamingResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
     // 1. Formulate system prompt
     let baseSystemPrompt = character.system_prompt || 'You are a helpful AI assistant.';
 
@@ -222,7 +223,7 @@ export class AiService {
    *   4. Upon completion, yields { done: true, fullReply: string }
    */
   async *streamChatResponse(
-    character: Character,
+    character: CharacterType,
     history: ChatMessage[],
     message?: string,
     imageBase64?: string,

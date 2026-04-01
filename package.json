@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "tsx src/backend/server.ts",
     "dev": "tsx watch src/backend/server.ts",
-    "db:seed": "tsx src/backend/seed.ts",
     "db:reset": "tsx src/backend/database/reset.ts",
+    "db:seed": "tsx src/backend/database/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

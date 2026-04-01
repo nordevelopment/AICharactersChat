@@ -16,7 +16,7 @@ function resetDatabase() {
         db.exec(sql);
 
         console.log('✅ Database structure successfully reset and rebuilt from schema.sql');
-        console.log('⚠️ DEAR USER: ALL PREVIOUS DATA IS NOW GONE. RUN "npm run seed" IF YOU WANT TEST CHARACTERS.');
+        console.log('⚠️ DEAR USER: ALL PREVIOUS DATA IS DELETED. RUN "npm run db:seed" TO ADD TEST CHARACTERS AND USER.');
     } catch (err) {
         console.error('❌ Error rebuilding database:', err);
     } finally {

@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { dbRepo } from '../database/sqlite';
+import { Character as CharacterType, ChatRequestPayload } from '../types';
+import { Character } from '../models/Character';
+import { Message } from '../models/Message';
 import { aiService } from '../services/ai.service';
-import { ChatRequestPayload } from '../types';
 import { config } from '../config/config';
 
 export async function chatRoutes(server: FastifyInstance, options?: { logger?: any }) {
@@ -13,24 +14,24 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const userId = request.session.user!.id;
     if (!character_id) return reply.code(400).send({ error: 'ID required' });
 
-    const activeCharacter = dbRepo.getCharacterById(character_id);
-    if (!activeCharacter) reply.code(404).send({ error: 'Not found' });
+    const activeCharacter = Character.findById(character_id);
+    if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
 
     // Обработка первого контакта
-    const historyInDB = dbRepo.getChatMessages(character_id, userId);
-    if (historyInDB.length === 0 && activeCharacter!.first_message) {
-      dbRepo.addMessage(character_id, userId, { role: 'assistant', content: activeCharacter.first_message }, 1);
+    const historyInDB = Message.getHistory(character_id, userId);
+    if (historyInDB.length === 0 && activeCharacter.first_message) {
+      Message.add(character_id, userId, { role: 'assistant', content: activeCharacter.first_message }, 1);
     }
 
     // Сохраняем текст пользователя
-    dbRepo.addMessage(character_id, userId, { role: 'user', content: message });
+    Message.add(character_id, userId, { role: 'user', content: message });
 
     // Суммаризация в фоне
     aiService.summarizeIfNeeded(character_id, userId, request.log).catch(err => {
       server.log.error(err, '[AI SERVICE] Background summarization failed');
     });
 
-    const history = dbRepo.getChatMessages(character_id, userId);
+    const history = Message.getHistory(character_id, userId);
 
     try {
       let fullReply = '';
@@ -57,7 +58,7 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
           if (config.debugAi) {
             request.log.info({ fullText: fullReply }, '[AI SERVICE] Final Assembled Text');
           }
-          dbRepo.addMessage(character_id, userId, { role: 'assistant', content: fullReply });
+          Message.add(character_id, userId, { role: 'assistant', content: fullReply });
         }
       })());
     } catch (error: any) {
@@ -70,18 +71,18 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const { character_id } = request.query as { character_id?: string };
     const userId = request.session.user!.id;
     if (!character_id) return [];
-    return dbRepo.getChatMessages(parseInt(character_id), userId);
+    return Message.getHistory(parseInt(character_id), userId);
   });
 
   server.delete('/api/history/:id', async (request) => {
     const userId = request.session.user!.id;
-    dbRepo.deleteHistory(parseInt((request.params as any).id), userId);
+    Message.deleteHistory(parseInt((request.params as any).id), userId);
     return { success: true };
   });
 
   server.delete('/api/history/all', async (request) => {
     const userId = request.session.user!.id;
-    dbRepo.deleteAllHistory(userId);
+    Message.deleteAll(userId);
     return { success: true };
   });
 }

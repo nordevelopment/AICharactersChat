@@ -55,8 +55,8 @@ export async function createApp() {
   await server.register(fastifyCookie);
   await server.register(fastifySession, {
     secret: config.jwtSecret, // Используем тот же ключ для подписи сессии
-    cookie: { 
-      secure: true, // Включили true для работы за Nginx-HTTPS
+    cookie: {
+      secure: false, // Включили true для работы за Nginx-HTTPS
       sameSite: 'lax', // Разрешает навигацию первого уровня (first-party)
       path: '/' // Куки доступны везде на домене
     }
@@ -73,7 +73,7 @@ export async function createApp() {
         sessionID: request.session?.sessionId, // Существует ли объект сессии?
         cookies: request.cookies, // Видит ли бэкенд куку вообще?
       }, 'Unauthorized access attempt: No session found or session expired');
-      
+
       return reply.code(401).send({ error: 'Unauthorized: No session found' });
     }
   });
