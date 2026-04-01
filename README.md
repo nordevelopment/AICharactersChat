@@ -15,7 +15,6 @@ Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Charac
 2. `npm run db:reset`
 3. `npm run db:seed`
 4. **Start Roleplaying.**
-
 ---
 
 ## 🔥 Features
@@ -30,7 +29,6 @@ Most AI tools require a 2GB Docker image and 50 configuration menus. **AI Charac
 - **Profile Management**: Update display name and password from the nav menu.
 - **Password Security**: Passwords hashed with bcrypt.
 - **Tools (Agents)**: AI can create text files, read text files, and generate images.
-
 ---
 
 ## 🛠 Tech Stack
