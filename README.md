@@ -123,7 +123,8 @@ views/
 └── index.html
 
 storage/
-└── generated/             # Saved generated images (gitignored)
+├── generated/             # Saved generated images (gitignored)
+└── sandbox/               # AI-generated text files (gitignored)
 ```
 
 ---
@@ -159,6 +160,8 @@ Session-based auth — no JWT juggling:
 - AI can create text files, read text files, and generate images.
 - Tool definitions in `src/backend/tools/definitions.ts`
 - Tool handlers in `src/backend/tools/handlers.ts`
+- **Sandbox**: All file operations are restricted to `storage/sandbox/` for security.
+- **Toggle**: Tools can be enabled/disabled in `ENABLED_TOOLS_LIST` within `definitions.ts`.
 
 ---
 
@@ -216,6 +219,10 @@ SESSION_SECRET=your_long_random_string_here_min_32_chars
 TOGETHER_API_KEY=your_together_api_key_here
 TOGETHER_IMAGE_API_URL=https://api.together.xyz/v1/images/generations
 TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
+
+# Debugging (Optional, defaults to true)
+AI_DEBUG_LOGS=true
+DEBUG_REQUESTS=true
 ```
 
 ### 4. Launch
