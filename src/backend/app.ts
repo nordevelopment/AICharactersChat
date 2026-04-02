@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { FastifySSEPlugin } from 'fastify-sse-v2';
@@ -24,6 +25,20 @@ declare module 'fastify' {
 }
 
 export async function createApp() {
+  // Обеспечиваем наличие папки для сгенерированного контента
+  const storagePath = path.join(__dirname, '../../storage');
+  if (!fs.existsSync(storagePath)) {
+    fs.mkdirSync(storagePath, { recursive: true });
+  }
+
+  // Создаем необходимые подпапки внутри storage
+  for (const folder of ['generated', 'logs', 'sandbox', 'images']) {
+    const folderPath = path.join(storagePath, folder);
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath);
+    }
+  }
+
   const server = fastify({
     trustProxy: true, // Позволяет корректно определять IP и HTTPS, когда мы за Nginx
     bodyLimit: 5242880, // 5MB
@@ -92,14 +107,16 @@ export async function createApp() {
     logLevel: 'warn'
   });
 
+  // register storage folder
   await server.register(fastifyStatic, {
-    root: path.join(process.cwd(), 'storage', 'generated'),
+    root: path.join(__dirname, '../../storage/generated'),
     prefix: '/storage/generated/',
     decorateReply: false,
     logLevel: 'warn'
   });
 
   // Views serving (direct HTML files)
+    
   server.get('/', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('index.html', config.viewsRoot));
   server.get('/chat', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
   server.get('/characters', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));

@@ -4,7 +4,7 @@ import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType } from '../types';
 import { Message } from '../models/Message';
-import { Character } from '../models/Character';
+// import { Character } from '../models/Character';
 import { ALL_TOOLS } from '../tools/definitions';
 import { executeTool } from '../tools/handlers';
 
@@ -183,7 +183,7 @@ export class AiService {
     }
 
     if (config.debugAi && logger) {
-      logger.info({ body: requestBody }, '[AI SERVICE] Outgoing AI Request');
+      logger.info({ tools: requestBody.tools }, '[AI SERVICE] Outgoing AI Request');
     }
 
     try {
@@ -205,9 +205,31 @@ export class AiService {
       return res;
     } catch (err: any) {
       if (config.debugAi && logger) {
+        let errorData = err.response?.data;
+        
+        // If data is a stream, we need to read it to see the actual error message
+        if (errorData && typeof errorData.on === 'function') {
+          try {
+            // Buffer the error stream
+            const chunks: Buffer[] = [];
+            for await (const chunk of errorData) {
+                chunks.push(chunk);
+            }
+            errorData = Buffer.concat(chunks).toString();
+            try {
+              errorData = JSON.parse(errorData);
+            } catch (e) {
+              // Not a JSON error, keep as string
+            }
+          } catch (e) {
+            errorData = '[Could not read error stream]';
+          }
+        }
+
         logger.error({
-          error: err.response?.data || err.message,
-          status: err.response?.status
+          status: err.response?.status,
+          error: errorData || err.message,
+          headers: err.response?.headers
         }, '[AI SERVICE] AI API Request Failed');
       }
       throw err;

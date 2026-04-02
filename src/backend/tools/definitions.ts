@@ -94,8 +94,8 @@ const generateImageTool: ToolDefinition = {
  */
 export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     create_text_file: createTextFileTool,
-    read_text_file: readTextFileTool,
-    generate_image: generateImageTool,
+    //read_text_file: readTextFileTool,
+    //generate_image: generateImageTool,
 };
 
 /**
@@ -104,8 +104,8 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
  */
 export const ENABLED_TOOLS_LIST = [
     'generate_image',
-    // 'create_text_file',
-    // 'read_text_file',
+    'create_text_file',
+    'read_text_file',
 ];
 
 /**

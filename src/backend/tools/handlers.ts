@@ -32,8 +32,19 @@ async function handleCreateTextFile(args: Record<string, string>): Promise<strin
         return 'Error: invalid file path.';
     }
 
+    // Некоторые AI-модели могут экранировать HTML внутри JSON-строки или оборачивать в markdown
+    let finalContent = content
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+
+    // Удаляем markdown оборачивание (если ИИ выдал ```html ... ``` внутри контента)
+    finalContent = finalContent.replace(/^```[a-z]*\r?\n/i, '').replace(/\r?\n```$/g, '');
+
     await ensureFilesDir();
-    await fs.writeFile(targetPath, content, 'utf-8');
+    await fs.writeFile(targetPath, finalContent, 'utf-8');
 
     return `File "${safeFilename}" created successfully at storage/sandbox/${safeFilename}`;
 }
