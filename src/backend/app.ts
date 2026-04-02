@@ -25,13 +25,10 @@ declare module 'fastify' {
 }
 
 export async function createApp() {
-  // Обеспечиваем наличие папки для сгенерированного контента
   const storagePath = path.join(__dirname, '../../storage');
   if (!fs.existsSync(storagePath)) {
     fs.mkdirSync(storagePath, { recursive: true });
   }
-
-  // Создаем необходимые подпапки внутри storage
   for (const folder of ['generated', 'logs', 'sandbox', 'images']) {
     const folderPath = path.join(storagePath, folder);
     if (!fs.existsSync(folderPath)) {
@@ -40,8 +37,8 @@ export async function createApp() {
   }
 
   const server = fastify({
-    trustProxy: true, // Позволяет корректно определять IP и HTTPS, когда мы за Nginx
-    bodyLimit: 5242880, // 5MB
+    trustProxy: true,
+    bodyLimit: 5242880,
     logger: config.debugRequests ? {
       level: 'info',
       transport: {
@@ -51,7 +48,6 @@ export async function createApp() {
     } : false
   });
 
-  // Сохраняем логгер для AI логов, даже если общие логи отключены
   const aiLogger = config.debugRequests ? server.log : {
     info: (data: any, message: string) => {
       if (config.debugAi) {
@@ -63,37 +59,31 @@ export async function createApp() {
     }
   };
 
-  // Plugins
   await server.register(FastifySSEPlugin);
 
-  // 1. Коротко: Сначала Cookies, потом Sessions
   await server.register(fastifyCookie);
   await server.register(fastifySession, {
-    secret: config.jwtSecret, // Используем тот же ключ для подписи сессии
+    secret: config.jwtSecret,
     cookie: {
-      secure: false, // Включили true для работы за Nginx-HTTPS
-      sameSite: 'lax', // Разрешает навигацию первого уровня (first-party)
-      path: '/' // Куки доступны везде на домене
+      secure: false,
+      sameSite: 'lax',
+      path: '/'
     }
   });
 
-  // 2. Декоратор аутентификации (теперь через сессии)
   server.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.session.user) {
-      // Логируем ошибку авторизации 
-      // (выведет URL, IP клиента и содержимое Cookie, чтобы мы понимали, потерялась кука или нет)
       server.log.warn({
         url: request.url,
         ip: request.ip,
-        sessionID: request.session?.sessionId, // Существует ли объект сессии?
-        cookies: request.cookies, // Видит ли бэкенд куку вообще?
+        sessionID: request.session?.sessionId,
+        cookies: request.cookies,
       }, 'Unauthorized access attempt: No session found or session expired');
 
       return reply.code(401).send({ error: 'Unauthorized: No session found' });
     }
   });
 
-  // Static Files
   await server.register(fastifyStatic, {
     root: config.frontendRoot,
     prefix: '/public/',
@@ -107,7 +97,6 @@ export async function createApp() {
     logLevel: 'warn'
   });
 
-  // register storage folder
   await server.register(fastifyStatic, {
     root: path.join(__dirname, '../../storage/generated'),
     prefix: '/storage/generated/',
@@ -115,8 +104,6 @@ export async function createApp() {
     logLevel: 'warn'
   });
 
-  // Views serving (direct HTML files)
-    
   server.get('/', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('index.html', config.viewsRoot));
   server.get('/chat', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
   server.get('/characters', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));

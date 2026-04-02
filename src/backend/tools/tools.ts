@@ -1,16 +1,11 @@
 /**
- * ╔══════════════════════════════════════════════════╗
- * ║                   TOOLS CONFIG                   ║
- * ║  Здесь всё в одном месте: описание + код + флаг  ║
- * ║  Чтобы включить/выключить — меняй только enabled ║
- * ╚══════════════════════════════════════════════════╝
- */
+ * Tools configuration
+ * To enable/disable tools, change the enabled flag
+*/
 
 import fs from 'fs/promises';
 import path from 'path';
 import { ImageService } from '../services/image.service';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
 
 type ToolArgs = Record<string, string>;
 
@@ -103,10 +98,6 @@ async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs): Promise<
 }
 
 // ─── Tools Registry ─────────────────────────────────────────────────────────
-//
-//  Чтобы ВКЛЮЧИТЬ инструмент  → enabled: true
-//  Чтобы ВЫКЛЮЧИТЬ инструмент → enabled: false
-//
 const TOOLS: Record<string, Tool> = {
 
     create_text_file: {
@@ -170,14 +161,10 @@ const TOOLS: Record<string, Tool> = {
 
 };
 
-// ─── Auto-derived exports (не трогай) ───────────────────────────────────────
-
-/** Массив определений инструментов для OpenRouter API (только enabled) */
 export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
     .filter(t => t.enabled)
     .map(t => t.definition);
 
-/** Выполняет инструмент по имени — вызывается из ai.service.ts */
 export async function executeTool(name: string, argsJson: string, logger?: any): Promise<string> {
     const tool = TOOLS[name];
 

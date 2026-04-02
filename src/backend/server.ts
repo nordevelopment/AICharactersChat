@@ -4,13 +4,8 @@ import { config } from './config/config';
 
 const start = async () => {
   try {
-    // 1. Инициализация БД
     initDB();
-    
-    // 2. Создание приложения Fastify
     const server = await createApp();
-    
-    // 3. Запуск
     await server.listen({ 
         port: config.port, 
         host: config.host 
