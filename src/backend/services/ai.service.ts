@@ -5,8 +5,7 @@ import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType } from '../types';
 import { Message } from '../models/Message';
 // import { Character } from '../models/Character';
-import { ALL_TOOLS } from '../tools/definitions';
-import { executeTool } from '../tools/handlers';
+import { ALL_TOOLS, executeTool } from '../tools/tools';
 
 /**
  * OpenAI-compatible message types

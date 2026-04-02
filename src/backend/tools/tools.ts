@@ -1,0 +1,204 @@
+/**
+ * ╔══════════════════════════════════════════════════╗
+ * ║                   TOOLS CONFIG                   ║
+ * ║  Здесь всё в одном месте: описание + код + флаг  ║
+ * ║  Чтобы включить/выключить — меняй только enabled ║
+ * ╚══════════════════════════════════════════════════╝
+ */
+
+import fs from 'fs/promises';
+import path from 'path';
+import { ImageService } from '../services/image.service';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type ToolArgs = Record<string, string>;
+
+interface ToolParameter {
+    type: string;
+    description: string;
+    enum?: string[];
+    default?: string | number | boolean;
+}
+
+interface ToolDefinition {
+    type: 'function';
+    function: {
+        name: string;
+        description: string;
+        parameters: {
+            type: 'object';
+            properties: Record<string, ToolParameter>;
+            required: string[];
+        };
+    };
+}
+
+interface Tool {
+    enabled: boolean;
+    definition: ToolDefinition;
+    handler: (args: ToolArgs) => Promise<string>;
+}
+
+// ─── Shared resources ───────────────────────────────────────────────────────
+
+const FILES_DIR = path.join(process.cwd(), 'storage', 'sandbox');
+const imageService = new ImageService();
+
+async function ensureFilesDir(): Promise<void> {
+    await fs.mkdir(FILES_DIR, { recursive: true });
+}
+
+// ─── Handlers ───────────────────────────────────────────────────────────────
+
+async function handleCreateTextFile({ filename, content }: ToolArgs): Promise<string> {
+    const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    if (!safeFilename) return 'Error: invalid filename provided.';
+
+    const targetPath = path.join(FILES_DIR, safeFilename);
+    if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';
+
+    // Некоторые AI-модели могут экранировать HTML или оборачивать в markdown
+    let finalContent = content
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+
+    finalContent = finalContent.replace(/^```[a-z]*\r?\n/i, '').replace(/\r?\n```$/g, '');
+
+    await ensureFilesDir();
+    await fs.writeFile(targetPath, finalContent, 'utf-8');
+
+    return `File "${safeFilename}" created successfully at storage/sandbox/${safeFilename}`;
+}
+
+async function handleReadTextFile({ filename }: ToolArgs): Promise<string> {
+    const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    if (!safeFilename) return 'Error: invalid filename provided.';
+
+    const targetPath = path.join(FILES_DIR, safeFilename);
+    if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';
+
+    try {
+        const content = await fs.readFile(targetPath, 'utf-8');
+        return `Contents of "${safeFilename}":\n\n${content}`;
+    } catch (err: any) {
+        if (err.code === 'ENOENT') return `Error: file "${safeFilename}" not found in sandbox.`;
+        return `Error reading file "${safeFilename}": ${err.message}`;
+    }
+}
+
+async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs): Promise<string> {
+    if (!prompt) return 'Error: prompt is required';
+
+    try {
+        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' });
+        if (!result.success) return `Error generating image: ${result.error}`;
+        return `![Generated Image](${result.image_url})`;
+    } catch (error: any) {
+        return `Error generating image: ${error.message}`;
+    }
+}
+
+// ─── Tools Registry ─────────────────────────────────────────────────────────
+//
+//  Чтобы ВКЛЮЧИТЬ инструмент  → enabled: true
+//  Чтобы ВЫКЛЮЧИТЬ инструмент → enabled: false
+//
+const TOOLS: Record<string, Tool> = {
+
+    create_text_file: {
+        enabled: false,
+        handler: handleCreateTextFile,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'create_text_file',
+                description: 'Write content to a file. User provides filename and content, or you can suggest them.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        filename: { type: 'string', description: 'File name (you can suggest appropriate name)' },
+                        content:  { type: 'string', description: 'Text content to write (user provides or you create)' },
+                    },
+                    required: ['filename', 'content'],
+                },
+            },
+        },
+    },
+
+    read_text_file: {
+        enabled: false,
+        handler: handleReadTextFile,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'read_text_file',
+                description: 'Reads the content of a text plain file by filename.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        filename: { type: 'string', description: 'File name to read. Example: "my_note.txt".' },
+                    },
+                    required: ['filename'],
+                },
+            },
+        },
+    },
+
+    generate_image: {
+        enabled: true,
+        handler: handleGenerateImage,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'generate_image',
+                description: 'Generates an AI image (FLUX model) from a text prompt. Returns a image url.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        prompt:       { type: 'string', description: 'Detailed description of the image to generate.' },
+                        aspect_ratio: { type: 'string', enum: ['1:1', '2:3', '3:2', '3:4', '4:3', '16:9', '9:16'], description: 'Aspect ratio', default: '1:1' },
+                    },
+                    required: ['prompt'],
+                },
+            },
+        },
+    },
+
+};
+
+// ─── Auto-derived exports (не трогай) ───────────────────────────────────────
+
+/** Массив определений инструментов для OpenRouter API (только enabled) */
+export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
+    .filter(t => t.enabled)
+    .map(t => t.definition);
+
+/** Выполняет инструмент по имени — вызывается из ai.service.ts */
+export async function executeTool(name: string, argsJson: string, logger?: any): Promise<string> {
+    const tool = TOOLS[name];
+
+    if (!tool) {
+        logger?.warn(`[TOOLS] Unknown tool called: "${name}"`);
+        return `Error: tool "${name}" is not implemented.`;
+    }
+
+    if (!tool.enabled) {
+        logger?.warn(`[TOOLS] Tool "${name}" is disabled.`);
+        return `Error: tool "${name}" is currently disabled.`;
+    }
+
+    try {
+        const args = JSON.parse(argsJson);
+        logger?.info({ tool: name, args }, '[TOOLS] Executing tool');
+        const result = await tool.handler(args);
+        logger?.info({ tool: name, result }, '[TOOLS] Tool executed successfully');
+        return result;
+    } catch (err: any) {
+        logger?.error({ tool: name, error: err.message }, '[TOOLS] Tool execution failed');
+        return `Error executing tool "${name}": ${err.message}`;
+    }
+}
