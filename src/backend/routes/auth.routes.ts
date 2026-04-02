@@ -33,6 +33,8 @@ export async function authRoutes(server: FastifyInstance) {
         display_name: user.display_name
       };
 
+      await request.session.save();
+
       // 4. Отдаем успех
       return {
         success: true,
@@ -77,6 +79,7 @@ export async function authRoutes(server: FastifyInstance) {
         display_name: updatedUser.display_name
       };
       request.session.user = userData;
+      await request.session.save();
 
       return { success: true, user: userData };
     } catch (err) {
