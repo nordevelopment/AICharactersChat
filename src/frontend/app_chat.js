@@ -1,6 +1,5 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('chatApp', () => ({
-        user: JSON.parse(localStorage.getItem('user') || '{}'),
         characters: [],
         currentCharacter: null,
         messages: [],
@@ -9,29 +8,14 @@ document.addEventListener('alpine:init', () => {
         sidebarActive: false,
         isTyping: false,
         typingMessage: '',
-        profileForm: { display_name: '', password: '' },
-        profileMessage: null,
-        profileLoading: false,
 
         async init() {
-            if (!this.user.display_name) {
-                this.logout();
-                return;
+            // Check auth first (this will be handled by userProfileApp if combined,
+            // but for now we keep it simple or rely on the combined state)
+            if (typeof this.checkAuth === 'function') {
+                if (!(await this.checkAuth())) return;
             }
 
-            const apiBase = window.APP_CONFIG?.apiBase || '/api';
-            // Проверка жива ли сессия на бэке
-            try {
-                const res = await fetch(`${apiBase}/me`);
-                if (!res.ok) {
-                    this.logout();
-                    return;
-                }
-            } catch (e) {
-                console.error("Auth check failed", e);
-            }
-
-            this.loadProfile();
             await this.loadCharacters();
 
             // Setup marked options
@@ -46,54 +30,12 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        loadProfile() {
-            this.profileForm.display_name = this.user.display_name || '';
-            this.profileForm.password = '';
-        },
-
-        openProfileModal() {
-            this.loadProfile();
-            this.profileMessage = null;
-            const modal = new bootstrap.Modal(document.getElementById('profileModal'));
-            modal.show();
-        },
-
-        async updateProfile() {
-            this.profileLoading = true;
-            this.profileMessage = null;
-            try {
-                const apiBase = window.APP_CONFIG?.apiBase || '/api';
-                const response = await fetch(`${apiBase}/profile`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(this.profileForm)
-                });
-                const result = await response.json();
-                if (result.success) {
-                    this.user = result.user;
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    this.profileMessage = { type: 'success', text: 'Profile updated!' };
-                    setTimeout(() => {
-                        const modalEl = document.getElementById('profileModal');
-                        const modal = bootstrap.Modal.getInstance(modalEl);
-                        if (modal) modal.hide();
-                    }, 1000);
-                } else {
-                    this.profileMessage = { type: 'error', text: result.error || 'Update failed' };
-                }
-            } catch (err) {
-                this.profileMessage = { type: 'error', text: 'Network error' };
-            } finally {
-                this.profileLoading = false;
-            }
-        },
-
         async loadCharacters() {
             try {
                 const apiBase = window.APP_CONFIG?.apiBase || '/api';
                 const response = await fetch(`${apiBase}/characters`);
                 if (response.status === 401) {
-                    this.logout();
+                    if (typeof this.logout === 'function') this.logout();
                     return;
                 }
                 this.characters = await response.json();
@@ -221,16 +163,6 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async logout() {
-            try {
-                const apiBase = window.APP_CONFIG?.apiBase || '/api';
-                await fetch(`${apiBase}/logout`, { method: 'POST' });
-            } catch (e) { }
-            localStorage.removeItem('user');
-            const appPrefix = window.APP_CONFIG?.appPrefix || '';
-            window.location.href = appPrefix + '/';
-        },
-
         renderMarkdown(content) {
             return DOMPurify.sanitize(marked.parse(content));
         },
@@ -248,3 +180,4 @@ document.addEventListener('alpine:init', () => {
         }
     }));
 });
+

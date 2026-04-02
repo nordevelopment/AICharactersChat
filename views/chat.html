@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="public/styles.css?v=15">
 </head>
 
-<body class="has-navbar" x-data="{ ...chatApp(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-cloak>
+<body class="has-navbar" x-data="{ ...chatApp(), ...userProfileApp(), prefix: window.APP_CONFIG?.appPrefix || '' }"
+    x-init="init()" x-cloak>
     <nav class="navbar navbar-expand-lg navbar-cyber">
         <div class="container-fluid">
             <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
@@ -189,6 +190,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="public/app_userprofile.js?v=2"></script>
     <script src="public/app_chat.js?v=10"></script>
 </body>
 

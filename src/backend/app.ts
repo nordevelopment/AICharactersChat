@@ -9,7 +9,9 @@ import fastifySession from '@fastify/session';
 import { characterRoutes } from './routes/character.routes';
 import { chatRoutes } from './routes/chat.routes';
 import { authRoutes } from './routes/auth.routes';
+import { userRoutes } from './routes/user.routes';
 import { imageRoutes } from './routes/image.routes';
+
 
 declare module 'fastify' {
   export interface FastifyInstance {
@@ -111,7 +113,9 @@ export async function createApp() {
 
   // Application Routes
   await server.register(authRoutes);
+  await server.register(userRoutes);
   await server.register(characterRoutes);
+
   await server.register(chatRoutes, { logger: aiLogger });
   await server.register(imageRoutes);
 
