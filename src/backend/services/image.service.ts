@@ -54,17 +54,32 @@ export class ImageService {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                timeout: 90000 // Increased timeout for image generation
             });
 
-            if (response.data && response.data.data && response.data.data[0] && response.data.data[0].url) {
+            if (response.data && response.data.data && response.data.data[0].url) {
+
+                console.log('Image Data:', response.data);
+
                 const imageUrl = response.data.data[0].url;
 
                 // Download and save locally
-                const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                const imageResponse = await axios.get(imageUrl, { 
+                    responseType: 'arraybuffer',
+                    timeout: 30000 // Timeout for downloading the image
+                });
 
                 if (!imageResponse.data) {
-                    throw new Error("Failed to download image");
+                    console.error('Failed to get image', response.data);
+                }
+
+                if (!imageResponse.data && response.data.data[0].url) {
+                    return {
+                        success: true,
+                        image_url: response.data.data[0].url,
+                        remote_url: response.data.data[0].url
+                    };
                 }
 
                 const filename = `${randomBytes(5).toString('hex')}_${Date.now()}.png`;
@@ -80,22 +95,42 @@ export class ImageService {
                 // Write to file
                 fs.writeFileSync(filePath, imageResponse.data);
 
+                console.log({ filePath, imageUrl, filename });
+
                 return {
                     success: true,
                     image_path: filePath,
                     image_url: `/storage/generated/${filename}`,
-                    remote_url: imageUrl,
-                    filename: filename,
-                    prompt: safePrompt
+                    remote_url: imageUrl
                 };
             }
 
-            console.error('Together AI Generation Error', response.data);
-            return { success: false, error: response.data.error || 'Unknown API error' };
+            console.error('Error image generation', response.data);
+            return { success: false, image_url:null, error: response.data.error || 'Unknown API error' };
 
         } catch (error: any) {
-            console.error('Together AI Service Exception:', error?.response?.data || error.message);
-            return { success: false, error: error?.response?.data?.error?.message || error.message };
+            let errorMessage = error.message;
+            let logContent = error?.response?.data;
+
+            if (error.response) {
+                const status = error.response.status;
+                if (status === 504) {
+                    errorMessage = 'Gateway Timeout: Сервис генерации изображений не ответил вовремя. Попробуйте еще раз.';
+                } else if (error.response.data?.error?.message) {
+                    errorMessage = error.response.data.error.message;
+                }
+
+                // If data is a Buffer (HTML error page), don't log the whole thing
+                if (Buffer.isBuffer(logContent)) {
+                    logContent = `[Buffer: ${logContent.length} bytes, likely HTML error page]`;
+                }
+                
+                console.error(`Image Service Exception (${status}):`, logContent);
+            } else {
+                console.error('Image Service Exception:', error.message);
+            }
+
+            return { success: false, error: errorMessage };
         }
     }
 

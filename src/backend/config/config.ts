@@ -29,10 +29,11 @@ export const config = {
   dbFile: path.join(process.cwd(), 'database.sqlite'),
   tempImagesDir: path.join(process.cwd(), 'storage', 'temp_images'),
   maxHistoryMessages: 20,
+  aiStreaming: process.env.AI_STREAMING ? process.env.AI_STREAMING === 'true' : false,
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
-  debugAi: process.env.AI_DEBUG_LOGS !== 'false', // По умолчанию включено, если не указано обратное
-  debugRequests: process.env.DEBUG_REQUESTS === 'true', // Включаем логи только если указано 'true'
+  debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : true,
+  debugRequests: process.env.DEBUG_REQUESTS ? process.env.DEBUG_REQUESTS === 'true' : false,
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 

@@ -57,7 +57,7 @@ export class AiService {
         ],
       }, {
         headers: { 'Authorization': `Bearer ${config.apiKey}` },
-        timeout: 15000
+        timeout: 30000
       });
 
       if (config.debugAi && logger) {
@@ -108,9 +108,9 @@ export class AiService {
   }
 
   /**
-   * Get streaming response with guaranteed context preservation
+   * Get AI response with guaranteed context preservation
    */
-  async getStreamingResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
+  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
     // 1. Formulate system prompt
     let baseSystemPrompt = character.system_prompt || 'You are a helpful AI assistant.';
 
@@ -169,9 +169,12 @@ export class AiService {
       provider: config.aiProvider,
       reasoning: character.reasoning ? { effort: 'low', exclude: true } : config.aiReasoning,
       messages: aiMessages,
-      stream: true,
-      stream_options: { include_usage: true },
+      stream: config.aiStreaming,
     };
+
+    if (config.aiStreaming) {
+      requestBody.stream_options = { include_usage: true };
+    }
 
     logger.info('character', character);
 
@@ -182,7 +185,7 @@ export class AiService {
     }
 
     if (config.debugAi && logger) {
-      logger.info({ tools: requestBody.tools }, '[AI SERVICE] Outgoing AI Request');
+      logger.info({ tools: requestBody.tools, stream: config.aiStreaming }, '[AI SERVICE] Outgoing AI Request');
     }
 
     try {
@@ -191,8 +194,8 @@ export class AiService {
           'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json'
         },
-        responseType: 'stream',
-        timeout: 30000 // Wait no more than 30 seconds
+        responseType: config.aiStreaming ? 'stream' : 'json',
+        timeout: 60000 // Increased timeout for non-streaming
       });
 
       if (config.debugAi && logger) {
@@ -252,12 +255,9 @@ export class AiService {
     userName?: string
   ): AsyncGenerator<{ reply?: string; done?: boolean; fullReply?: string }> {
     // ── First request to AI ─────────────────────────────────────────────
-    const response = await this.getStreamingResponse(character, history, message, imageBase64, logger, userName);
+    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName);
 
     let fullReply = '';
-    let firstChunkLogged = false;
-
-    // tool_calls accumulator (delta-stream collects them in parts)
     const pendingToolCalls: Array<{
       index: number;
       id: string;
@@ -265,70 +265,81 @@ export class AiService {
       argumentsRaw: string;
     }> = [];
 
-    // ── Read the first stream ───────────────────────────────────────────
-    await new Promise<void>((resolve, reject) => {
-      const parser = createParser({
-        onEvent: (event) => {
-          if (event.data === '[DONE]') { resolve(); return; }
-          try {
-            const data = JSON.parse(event.data);
+    if (config.aiStreaming) {
+      // ── Read the first stream ───────────────────────────────────────────
+      let firstChunkLogged = false;
+      await new Promise<void>((resolve, reject) => {
+        const parser = createParser({
+          onEvent: (event) => {
+            if (event.data === '[DONE]') { resolve(); return; }
+            try {
+              const data = JSON.parse(event.data);
 
-            if (!firstChunkLogged && data.model && config.debugAi) {
-              logger?.info({ model: data.model, id: data.id }, '[AI SERVICE] Session Started');
-              firstChunkLogged = true;
-            }
-
-            if (data.usage && config.debugAi) {
-              logger?.info({ usage: data.usage }, '[AI SERVICE] Usage Stats Received');
-            }
-
-            const delta = data.choices?.[0]?.delta;
-            if (!delta) return;
-
-            // Normal text chunk
-            if (delta.content) {
-              fullReply += delta.content;
-              // Immediately queue for output after resolve
-              // (cannot yield inside Promise callback, so accumulate in fullReply)
-            }
-
-            // Tool call delta - accumulates tool call data in parts
-            if (delta.tool_calls) {
-              for (const tc of delta.tool_calls) {
-                const idx = tc.index ?? 0;
-                if (!pendingToolCalls[idx]) {
-                  pendingToolCalls[idx] = { index: idx, id: tc.id || '', name: '', argumentsRaw: '' };
-                }
-                if (tc.function?.name) pendingToolCalls[idx].name += tc.function.name;
-                if (tc.function?.arguments) pendingToolCalls[idx].argumentsRaw += tc.function.arguments;
+              if (!firstChunkLogged && data.model && config.debugAi) {
+                logger?.info({ model: data.model, id: data.id }, '[AI SERVICE] Session Started');
+                firstChunkLogged = true;
               }
-            }
 
-            const finishReason = data.choices?.[0]?.finish_reason;
-            if (finishReason === 'stop' || finishReason === 'tool_calls') {
-              resolve();
-            }
-          } catch { }
-        }
-      });
+              const delta = data.choices?.[0]?.delta;
+              if (!delta) return;
 
-      (async () => {
-        try {
-          for await (const chunk of response.data) {
-            parser.feed(chunk.toString());
+              if (delta.content) {
+                fullReply += delta.content;
+              }
+
+              if (delta.tool_calls) {
+                for (const tc of delta.tool_calls) {
+                  const idx = tc.index ?? 0;
+                  if (!pendingToolCalls[idx]) {
+                    pendingToolCalls[idx] = { index: idx, id: tc.id || '', name: '', argumentsRaw: '' };
+                  }
+                  if (tc.function?.name) pendingToolCalls[idx].name += tc.function.name;
+                  if (tc.function?.arguments) pendingToolCalls[idx].argumentsRaw += tc.function.arguments;
+                }
+              }
+
+              const finishReason = data.choices?.[0]?.finish_reason;
+              if (finishReason === 'stop' || finishReason === 'tool_calls') {
+                resolve();
+              }
+            } catch { }
           }
-          resolve();
-        } catch (err) {
-          reject(err);
+        });
+
+        (async () => {
+          try {
+            for await (const chunk of response.data) {
+              parser.feed(chunk.toString());
+            }
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        })();
+      });
+    } else {
+      // ── Handle non-streaming response ──────────────────────────────────
+      const data = response.data;
+      const message = data.choices?.[0]?.message;
+      if (message) {
+        fullReply = message.content || '';
+        if (message.tool_calls) {
+          message.tool_calls.forEach((tc: any, idx: number) => {
+            pendingToolCalls.push({
+              index: idx,
+              id: tc.id,
+              name: tc.function.name,
+              argumentsRaw: tc.function.arguments
+            });
+          });
         }
-      })();
-    });
+      }
+    }
 
     // ── If tool_calls were detected — execute them and make a second request ───
     if (pendingToolCalls.length > 0) {
       logger?.info({ count: pendingToolCalls.length }, '[AI SERVICE] Tool calls detected, executing');
 
-      // Execute tools in parallel
       const toolResults = await Promise.all(
         pendingToolCalls.map(async (tc) => ({
           tool_call_id: tc.id,
@@ -337,8 +348,6 @@ export class AiService {
         }))
       );
 
-      // Build messages for the second request:
-      // assistant message with tool_calls + tool result messages
       const assistantMsgWithToolCalls: AiMessage & { tool_calls?: any[] } = {
         role: 'assistant',
         content: fullReply || '',
@@ -356,35 +365,40 @@ export class AiService {
         content: tr.result,
       }));
 
-      // Second request — get the final answer as a stream
-      const secondResponse = await this.getStreamingResponse(
+      const secondResponse = await this.getAiResponse(
         character, history, message, imageBase64, logger, userName,
         [assistantMsgWithToolCalls, ...toolResultMessages]
       );
 
-      fullReply = ''; // Reset - will collect the final answer
+      fullReply = ''; // Reset for the final answer
 
-      const parser2 = createParser({
-        onEvent: (event) => {
-          if (event.data === '[DONE]') return;
-          try {
-            const data = JSON.parse(event.data);
-            const content = data.choices?.[0]?.delta?.content;
-            if (content) fullReply += content;
-          } catch { }
-        }
-      });
+      if (config.aiStreaming) {
+        const parser2 = createParser({
+          onEvent: (event) => {
+            if (event.data === '[DONE]') return;
+            try {
+              const data = JSON.parse(event.data);
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) fullReply += content;
+            } catch { }
+          }
+        });
 
-      let prevLen = 0;
-      for await (const chunk of secondResponse.data) {
-        parser2.feed(chunk.toString());
-        if (fullReply.length > prevLen) {
-          yield { reply: fullReply.slice(prevLen) };
-          prevLen = fullReply.length;
+        let prevLen = 0;
+        for await (const chunk of secondResponse.data) {
+          parser2.feed(chunk.toString());
+          if (fullReply.length > prevLen) {
+            yield { reply: fullReply.slice(prevLen) };
+            prevLen = fullReply.length;
+          }
         }
+      } else {
+        const data = secondResponse.data;
+        fullReply = data.choices?.[0]?.message?.content || '';
+        yield { reply: fullReply };
       }
     } else {
-      // No tool_calls — just return what we accumulated
+      // No tool_calls — return what we have
       if (fullReply) yield { reply: fullReply };
     }
 

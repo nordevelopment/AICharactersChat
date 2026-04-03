@@ -90,9 +90,14 @@ async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs): Promise<
 
     try {
         const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' });
-        if (!result.success) return `Error generating image: ${result.error}`;
+        if (!result.success) {
+            console.error('[TOOLS] [generate_image] Failed:', result.error);
+            return `Error generating image: ${result.error}`;
+        }
+        console.log('[TOOLS] [generate_image] Success:', result.image_url);
         return `![Image](${result.image_url})\n\n[Open image](${result.image_url})`;
     } catch (error: any) {
+        console.error('[TOOLS] [generate_image] Exception:', error.message);
         return `Error generating image: ${error.message}`;
     }
 }
@@ -180,11 +185,16 @@ export async function executeTool(name: string, argsJson: string, logger?: any):
 
     try {
         const args = JSON.parse(argsJson);
+        console.log(`[TOOLS] [${name}] Starting execution with args:`, argsJson);
         logger?.info({ tool: name, args }, '[TOOLS] Executing tool');
+        
         const result = await tool.handler(args);
+        
+        console.log(`[TOOLS] [${name}] Finished. Result length: ${result.length}`);
         logger?.info({ tool: name, result }, '[TOOLS] Tool executed successfully');
         return result;
     } catch (err: any) {
+        console.error(`[TOOLS] [${name}] JSON Parse or Execution Error:`, err.message, 'Raw args:', argsJson);
         logger?.error({ tool: name, error: err.message }, '[TOOLS] Tool execution failed');
         return `Error executing tool "${name}": ${err.message}`;
     }
