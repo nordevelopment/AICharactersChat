@@ -31,6 +31,7 @@ CREATE TABLE characters (
   max_tokens INTEGER DEFAULT 250,
   avatar TEXT,
   tools INTEGER DEFAULT 0,
+  reasoning INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

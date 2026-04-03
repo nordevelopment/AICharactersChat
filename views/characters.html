@@ -122,7 +122,12 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Avatar</label>
-                                        <input type="file" x-model="form.avatar" class="form-control">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <template x-if="form.avatar">
+                                                <img :src="form.avatar" class="avatar-preview-sm" style="width: 38px; height: 38px; border-radius: 4px; object-fit: cover;">
+                                            </template>
+                                            <input type="file" @change="onAvatarChange($event)" class="form-control" accept="image/*">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -150,17 +155,25 @@
                                         <input type="number" x-model="form.temperature" class="form-control" step="0.1"
                                             min="0.1" max="1.2">
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
                                         <label class="form-label">Max Tokens</label>
                                         <input type="number" x-model="form.max_tokens" class="form-control" min="100"
                                             max="4000" value="">
                                     </div>
-                                    <div class="col-md-5 mb-3">
+                                    <div class="col-md-3 mb-3">
                                         <label class="form-label">Tools</label>
                                         <div class="form-check">
                                             <input type="hidden" x-model="form.tools" value="0">
                                             <input type="checkbox" x-model="form.tools" class="form-check-input">
                                             <label class="form-check-label">Enable Tools</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Reasoning</label>
+                                        <div class="form-check">
+                                            <input type="hidden" x-model="form.reasoning" value="0">
+                                            <input type="checkbox" x-model="form.reasoning" class="form-check-input">
+                                            <label class="form-check-label">Enable Reasoning</label>
                                         </div>
                                     </div>
                                 </div>

@@ -33,6 +33,7 @@ export const config = {
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
   debugAi: process.env.AI_DEBUG_LOGS !== 'false', // По умолчанию включено, если не указано обратное
   debugRequests: process.env.DEBUG_REQUESTS === 'true', // Включаем логи только если указано 'true'
+  avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 
 // Простая проверка обязательных переменных

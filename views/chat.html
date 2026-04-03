@@ -132,7 +132,7 @@
             <div class="chat-input-area">
                 <div class="input-wrapper">
                     <label for="image-input" class="btn btn-link text-muted p-0 me-2 mb-0" style="cursor:pointer;">
-                        <img src="/public/icons/img.svg" alt="Image" width="24" height="24">
+                        <img src="public/icons/img.svg" alt="Image" width="24" height="24">
                         <input type="file" id="image-input" x-ref="imageInput" @change="handleImage" accept="image/*"
                             style="display:none;">
                     </label>
@@ -141,7 +141,7 @@
                         placeholder="Type a message..." autocomplete="off" rows="1"
                         :style="`height: ${Math.min(newMessage.split('\n').length * 24 + 16, 200)}px`"></textarea>
                     <button class="send-button" @click="sendMessage()" :disabled="!currentCharacter || isTyping">
-                        <img src="/public/icons/send.svg" alt="Send" width="24" height="24">
+                        <img src="public/icons/send.svg" alt="Send" width="24" height="24">
                     </button>
                 </div>
             </div>

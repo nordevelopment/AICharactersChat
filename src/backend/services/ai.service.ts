@@ -167,7 +167,7 @@ export class AiService {
       presence_penalty: config.aiPresencePenalty,
       safe_prompt: config.aiSafePrompt,
       provider: config.aiProvider,
-      reasoning: config.aiReasoning,
+      reasoning: character.reasoning ? { effort: 'low', exclude: true } : config.aiReasoning,
       messages: aiMessages,
       stream: true,
       stream_options: { include_usage: true },

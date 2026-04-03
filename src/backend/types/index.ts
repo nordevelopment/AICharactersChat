@@ -9,6 +9,7 @@ export interface Character {
   max_tokens: number;
   avatar?: string;
   tools?: number;
+  reasoning?: number;
   created_at?: string;
 }
 

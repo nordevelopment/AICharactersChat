@@ -8,10 +8,12 @@ document.addEventListener('alpine:init', () => {
             system_prompt: '',
             scenario: '',
             first_message: '',
-            temperature: 0.8,
-            max_tokens: 200,
-            tools: 0,
+            temperature: '',
+            max_tokens: '',
+            tools: '',
+            reasoning: '',
         },
+        avatarFile: null,
         formInvalid: false,
         bsModal: null,
 
@@ -35,17 +37,22 @@ document.addEventListener('alpine:init', () => {
         },
 
         prepareAdd() {
-            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 200, tools: 0 };
+            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 300, tools: 0, reasoning: 0 };
             this.formInvalid = false;
             this.bsModal.show();
         },
 
         prepareEdit(char) {
             this.form = { ...char };
-            // Конвертируем tools из числа в boolean для checkbox
             this.form.tools = char.tools === 1;
+            this.form.reasoning = char.reasoning === 1;
+            this.avatarFile = null;
             this.formInvalid = false;
             this.bsModal.show();
+        },
+
+        onAvatarChange(event) {
+            this.avatarFile = event.target.files[0];
         },
 
         async saveCharacter() {
@@ -60,10 +67,29 @@ document.addEventListener('alpine:init', () => {
             const method = this.form.slug ? 'PUT' : 'POST';
 
             try {
-                // Преобразуем tools в число для SQLite
+                // Если выбран файл аватара - сначала загружаем его
+                if (this.avatarFile) {
+                    const avatarFormData = new FormData();
+                    avatarFormData.append('file', this.avatarFile);
+                    const uploadRes = await fetch(`${apiBase}/characters/upload-avatar`, {
+                        method: 'POST',
+                        body: avatarFormData
+                    });
+                    if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json();
+                        this.form.avatar = uploadData.path;
+                    } else {
+                        throw new Error('Avatar upload failed');
+                    }
+                }
+
+                // Преобразуем tools и reasoning в число для SQLite
                 const formData = { ...this.form };
                 if (typeof formData.tools === 'boolean') {
                     formData.tools = formData.tools ? 1 : 0;
+                }
+                if (typeof formData.reasoning === 'boolean') {
+                    formData.reasoning = formData.reasoning ? 1 : 0;
                 }
 
                 const res = await fetch(url, {

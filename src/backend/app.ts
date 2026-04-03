@@ -11,6 +11,7 @@ import { chatRoutes } from './routes/chat.routes';
 import { authRoutes } from './routes/auth.routes';
 import { userRoutes } from './routes/user.routes';
 import { imageRoutes } from './routes/image.routes';
+import fastifyMultipart from '@fastify/multipart';
 
 
 declare module 'fastify' {
@@ -31,7 +32,7 @@ export async function createApp() {
   if (!fs.existsSync(storagePath)) {
     fs.mkdirSync(storagePath, { recursive: true });
   }
-  for (const folder of ['generated', 'logs', 'sandbox', 'images']) {
+  for (const folder of ['generated', 'logs', 'sandbox', 'images', 'avatars']) {
     const folderPath = path.join(storagePath, folder);
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath);
@@ -60,6 +61,8 @@ export async function createApp() {
       console.error(`[AI SERVICE ERROR] ${message}`, data);
     }
   };
+
+  await server.register(fastifyMultipart);
 
   await server.register(FastifySSEPlugin);
 
@@ -102,6 +105,13 @@ export async function createApp() {
   await server.register(fastifyStatic, {
     root: path.join(__dirname, '../../storage/generated'),
     prefix: '/storage/generated/',
+    decorateReply: false,
+    logLevel: 'warn'
+  });
+
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../../storage/avatars'),
+    prefix: '/storage/avatars/',
     decorateReply: false,
     logLevel: 'warn'
   });

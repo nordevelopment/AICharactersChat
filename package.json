@@ -4,9 +4,9 @@
   "description": "A lightweight, self-hosted AI characters and agents chat app with SSE streaming and automated summarization.",
   "main": "dist/backend/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "tsx src/backend/server.ts",
     "dev": "tsx watch src/backend/server.ts",
+    "build": "tsc",
+    "start": "npm run build && node dist/backend/server.js",
     "db:reset": "tsx src/backend/database/reset.ts",
     "db:seed": "tsx src/backend/database/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
