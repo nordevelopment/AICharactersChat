@@ -91,7 +91,7 @@ async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs): Promise<
     try {
         const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' });
         if (!result.success) return `Error generating image: ${result.error}`;
-        return `![Image](${result.image_url})`;
+        return `![Image](${result.image_url})\n\n[Open image](${result.image_url})`;
     } catch (error: any) {
         return `Error generating image: ${error.message}`;
     }
@@ -146,11 +146,11 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'generate_image',
-                description: 'Generate image from a text description. Returns a image url.',
+                description: 'Generates image. ALWAYS use this tool for any image request. NEVER create links manually.',
                 parameters: {
                     type: 'object',
                     properties: {
-                        prompt: { type: 'string', description: 'Detailed description of the image to generate (Subject, Action, Style, Context)' },
+                        prompt: { type: 'string', description: 'Detailed description of the image to generate (Subject, Action, Style, Context). In English' },
                         aspect_ratio: { type: 'string', enum: ['1:1', '2:3', '3:2', '3:4', '4:3', '16:9', '9:16'], description: 'Aspect ratio', default: '1:1' },
                     },
                     required: ['prompt'],

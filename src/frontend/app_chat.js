@@ -19,7 +19,15 @@ document.addEventListener('alpine:init', () => {
             await this.loadCharacters();
 
             // Setup marked options
+            const renderer = new marked.Renderer();
+            const origLink = renderer.link.bind(renderer);
+            renderer.link = function(data) {
+                const html = origLink(data);
+                return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
+            };
+
             marked.setOptions({
+                renderer,
                 highlight: (code, lang) => {
                     if (lang && hljs.getLanguage(lang)) {
                         return hljs.highlight(code, { language: lang }).value;
@@ -164,7 +172,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         renderMarkdown(content) {
-            return DOMPurify.sanitize(marked.parse(content));
+            return DOMPurify.sanitize(marked.parse(content), { ADD_ATTR: ['target'] });
         },
 
         scrollToBottom() {
