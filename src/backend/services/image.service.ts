@@ -38,7 +38,7 @@ export class ImageService {
             prompt: safePrompt,
             width,
             height,
-            steps: options.steps || 25,
+            steps: options.steps || 23,
             n: 1,
             guidance: options.guidance || 4,
             output_format: 'png',
@@ -64,7 +64,7 @@ export class ImageService {
                 const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
 
                 if (!imageResponse.data) {
-                    throw new Error("Failed to download image from Together AI");
+                    throw new Error("Failed to download image");
                 }
 
                 const filename = `${randomBytes(5).toString('hex')}_${Date.now()}.png`;

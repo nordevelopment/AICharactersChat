@@ -176,7 +176,7 @@ document.addEventListener('alpine:init', () => {
 
         getAvatar(char) {
             if (char.avatar) return char.avatar;
-            return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2300f2ff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='Outfit' font-size='50' fill='%2305070a'%3E${char.name[0].toUpperCase()}%3C/text%3E%3C/svg%3E`;
+            return null;
         }
     }));
 });
