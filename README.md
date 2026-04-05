@@ -85,31 +85,36 @@ src/
 ├── backend/
 │   ├── server.ts          # Entry point
 │   ├── app.ts             # Fastify plugin registration
-│   ├── seed.ts            # DB seed script
 │   ├── config/
 │   │   └── config.ts      # All env vars and defaults
 │   ├── database/
 │   │   ├── schema.sql     # Table definitions
 │   │   ├── reset.ts       # Drops and recreates DB
+│   │   ├── seed.ts        # DB seed script
 │   │   └── sqlite.ts      # dbRepo — Repository Pattern
+|   |   Models
+│   │   ├── User.ts
+│   │   ├── Character.ts
+│   │   ├── Message.ts
 │   ├── routes/
 │   │   ├── auth.routes.ts      # Login, register, profile
 │   │   ├── character.routes.ts # CRUD for characters
 │   │   ├── chat.routes.ts      # SSE streaming endpoint
-│   │   └── image.routes.ts     # Image generation & history
+│   │   ├── image.routes.ts     # Image generation & history
+|   |   |__ user.routes.ts      # User profile
 │   ├── services/
 │   │   ├── ai.service.ts       # OpenRouter SSE + summarization
 │   │   └── image.service.ts    # Together AI image generation
 │   └── types/
 │       └── *.ts           # TypeScript interfaces
 │   └── tools/
-│       ├── definitions.ts  # Tool definitions for Grok
-│       └── handlers.ts     # Tool implementations
+│       ├── tools.ts        # Tool definitions
 └── frontend/
     ├── app_chat.js         # Chat page logic
     ├── app_characters.js   # Characters page logic
     ├── app_image_gen.js    # Image gen page logic
     ├── app_login.js        # Auth page logic
+    ├── app_userprofile.js  # User profile logic
     ├── config.js           # Runtime config (prefix, etc.)
     ├── styles.css          # Global styles (cyberpunk theme)
     └── icons/              # UI icons

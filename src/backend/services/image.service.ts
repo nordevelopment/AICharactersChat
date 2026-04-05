@@ -23,8 +23,9 @@ export class ImageService {
         this.model = config.togetherImageModel;
     }
 
-    public async generate(prompt: string, options: GenerateOptions = {}) {
+    public async generate(prompt: string, options: GenerateOptions = {}, logger?: any) {
         if (!this.apiUrl || !this.apiKey || !this.model) {
+            logger?.error('[IMAGE SERVICE] Missing configuration');
             return { success: false, error: 'Missing Together AI configuration' };
         }
 
@@ -55,58 +56,61 @@ export class ImageService {
                     'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 90000 // Increased timeout for image generation
+                timeout: 600000
             });
 
             if (response.data && response.data.data && response.data.data[0].url) {
+                const remoteImageUrl = response.data.data[0].url;
+                logger?.info({ remoteImageUrl }, '[IMAGE SERVICE] Image received from API');
 
-                console.log('Image Data:', response.data);
-
-                const imageUrl = response.data.data[0].url;
-
-                // Download and save locally
-                const imageResponse = await axios.get(imageUrl, { 
-                    responseType: 'arraybuffer',
-                    timeout: 30000 // Timeout for downloading the image
-                });
-
-                if (!imageResponse.data) {
-                    console.error('Failed to get image', response.data);
-                }
-
-                if (!imageResponse.data && response.data.data[0].url) {
-                    return {
-                        success: true,
-                        image_url: response.data.data[0].url,
-                        remote_url: response.data.data[0].url
-                    };
+                // Download and save locally with retries
+                let imageResponse;
+                const maxRetries = 3;
+                
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        imageResponse = await axios.get(remoteImageUrl, {
+                            responseType: 'arraybuffer',
+                            timeout: 45000 // Немного увеличим таймаут для самого скачивания
+                        });
+                        break; // Если успешно — выходим из цикла
+                    } catch (downloadError: any) {
+                        if (attempt === maxRetries) {
+                            logger?.error({ attempt, error: downloadError.message }, '[IMAGE SERVICE] All download attempts failed');
+                            throw downloadError; // Пробрасываем ошибку дальше, если все попытки провалены
+                        }
+                        
+                        const delay = attempt * 2000; // 2s, 4s...
+                        logger?.warn({ attempt, delay, error: downloadError.message }, '[IMAGE SERVICE] Download failed, retrying...');
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
                 }
 
                 const filename = `${randomBytes(5).toString('hex')}_${Date.now()}.png`;
                 const generatedDir = path.join(process.cwd(), 'storage', 'generated');
 
-                // Ensure directory exists
                 if (!fs.existsSync(generatedDir)) {
                     fs.mkdirSync(generatedDir, { recursive: true });
                 }
 
                 const filePath = path.join(generatedDir, filename);
 
-                // Write to file
                 fs.writeFileSync(filePath, imageResponse.data);
 
-                console.log({ filePath, imageUrl, filename });
+                const imageUrl = `/storage/generated/${filename}`;
+
+                logger?.info({ filePath, filename, imageUrl }, '[IMAGE SERVICE] Image saved locally');
 
                 return {
                     success: true,
                     image_path: filePath,
-                    image_url: `/storage/generated/${filename}`,
-                    remote_url: imageUrl
+                    image_url: imageUrl,
+                    remote_url: remoteImageUrl
                 };
             }
 
-            console.error('Error image generation', response.data);
-            return { success: false, image_url:null, error: response.data.error || 'Unknown API error' };
+            logger?.error({ response: response.data }, '[IMAGE SERVICE] Error in generation response');
+            return { success: false, image_url: null, error: response.data.error || 'Unknown API error' };
 
         } catch (error: any) {
             let errorMessage = error.message;
@@ -115,19 +119,18 @@ export class ImageService {
             if (error.response) {
                 const status = error.response.status;
                 if (status === 504) {
-                    errorMessage = 'Gateway Timeout: Сервис генерации изображений не ответил вовремя. Попробуйте еще раз.';
+                    errorMessage = 'Gateway Timeout.';
                 } else if (error.response.data?.error?.message) {
                     errorMessage = error.response.data.error.message;
                 }
 
-                // If data is a Buffer (HTML error page), don't log the whole thing
                 if (Buffer.isBuffer(logContent)) {
-                    logContent = `[Buffer: ${logContent.length} bytes, likely HTML error page]`;
+                    logContent = `[Buffer: ${logContent.length} bytes]`;
                 }
-                
-                console.error(`Image Service Exception (${status}):`, logContent);
+
+                logger?.error({ status, data: logContent }, '[IMAGE SERVICE] API Exception');
             } else {
-                console.error('Image Service Exception:', error.message);
+                logger?.error({ error: error.message }, '[IMAGE SERVICE] Exception');
             }
 
             return { success: false, error: errorMessage };

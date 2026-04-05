@@ -4,7 +4,6 @@ import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType } from '../types';
 import { Message } from '../models/Message';
-// import { Character } from '../models/Character';
 import { ALL_TOOLS, executeTool } from '../tools/tools';
 
 /**
@@ -17,42 +16,34 @@ interface AiContentItem {
 }
 
 interface AiMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string | AiContentItem[];
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content?: string | AiContentItem[] | null;
+  tool_calls?: any[];
+  tool_call_id?: string;
+  name?: string;
 }
 
 export class AiService {
   /**
-   * Summarization of old messages to avoid bloating the context.
-   * Called when the limit is reached.
+   * Compact conversation summary
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
-    const history = Message.getHistory(characterId, userId);
-
-    // If there are less than 30 messages, don't bother the API
+    const history = Message.getHistory(characterId, userId, true);
     if (history.length <= 30) return;
 
-    // Take the first 15 messages for summarization
-    // (leave a reserve of fresh messages in the history)
     const messagesToSummarize = history.slice(0, 15);
     const idsToDelete = messagesToSummarize.filter(m => m.id).map(m => m.id!);
 
     try {
-      const prompt = 'You are a history chronologist. Briefly summarize the previous interaction context of the following dialogue in one concise paragraph:';
-
-      if (config.debugAi && logger) {
-        logger.info({ body: { model: config.aiDefaultModel, messages: messagesToSummarize.length } }, '[AI SERVICE] Context summarization request');
-      }
-
+      const prompt = 'Briefly summarize the dialogue';
       const res = await axios.post(config.apiUrl, {
         model: config.aiDefaultModel,
-        temperature: 0.3, // Less creativity for summarization
-        max_tokens: 350,
+        temperature: 0.3,
         messages: [
           { role: 'system', content: prompt },
           ...messagesToSummarize.map(m => ({
             role: m.role,
-            content: typeof m.content === 'string' ? m.content : '[Image/Attachment]'
+            content: typeof m.content === 'string' ? m.content : '[Attachment]'
           }))
         ],
       }, {
@@ -60,191 +51,132 @@ export class AiService {
         timeout: 30000
       });
 
-      if (config.debugAi && logger) {
-        logger.info({ status: res.status }, '[AI SERVICE] Context summarization response');
-      }
-
       const summary = res.data.choices?.[0]?.message?.content;
       if (summary) {
-        // Transactionally delete old and add summarization
         Message.deleteBatch(idsToDelete);
         Message.add(characterId, userId, {
           role: 'system',
-          content: `Historical Context Summary: ${summary.trim()}`
+          content: `History Summary: ${summary.trim()}`
         });
-        if (logger) {
-          logger.info(`[AI SERVICE] Automated summary generated for character ${characterId} for user ${userId}`);
-        }
       }
     } catch (e) {
-      if (logger) {
-        logger.error(e, '[AI SERVICE] Context summarization failed');
-      }
+      logger?.error('[AI SERVICE] Summarization failed');
     }
   }
 
   /**
-   * Safe image processing with resizing
+   * Process and resize incoming images
    */
-  async processImage(base64: string): Promise<string> {
+  async processImage(base64: string, logger?: any): Promise<string> {
     try {
-      // Clean base64 from possible prefixes
       const matches = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
       const data = matches ? matches[2] : base64;
-
       const imgBuffer = Buffer.from(data, 'base64');
 
-      // Senior-level processing: resize with aspect ratio preservation
-      const resizedBuffer = await sharp(imgBuffer)
+      const resized = await sharp(imgBuffer)
         .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80, mozjpeg: true })
+        .jpeg({ quality: 80 })
         .toBuffer();
 
-      return `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
-    } catch (err) {
-      console.error('[AI SERVICE] Image processing error:', err);
-      throw new Error('Failed to process image for AI input');
+      return `data:image/jpeg;base64,${resized.toString('base64')}`;
+    } catch (err: any) {
+      logger?.error({ error: err.message }, '[AI SERVICE] Image processing error');
+      throw new Error('Image processing failed');
     }
   }
 
   /**
-   * Get AI response with guaranteed context preservation
+   * Core request to AI API
    */
   async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
-    // 1. Formulate system prompt
-    let baseSystemPrompt = character.system_prompt || 'You are a helpful AI assistant.';
+    let sys = character.system_prompt || 'Helpful assistant.';
+    if (userName) sys = sys.replace(/{{user}}/g, userName);
+    sys = sys.replace(/{{char}}/g, character.name);
+    if (character.scenario) sys += `\nScenario: ${character.scenario}`;
 
-    // Add scenario if available
-    if (character.scenario) {
-      baseSystemPrompt += `\nScenario:\n${character.scenario}`;
-    }
-
-    // Substitute variables {{user}} and {{char}}
-    if (userName) {
-      baseSystemPrompt = baseSystemPrompt.replace(/{{user}}/g, userName);
-    }
-    baseSystemPrompt = baseSystemPrompt.replace(/{{char}}/g, character.name);
-
-    const aiMessages: AiMessage[] = [];
-    aiMessages.push({ role: 'system', content: baseSystemPrompt });
-
-    // 2. Add last N messages from history (avoid amnesia)
+    const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
     const recentHistory = history.slice(-config.maxHistoryMessages);
 
-    recentHistory.forEach((msg) => {
-      aiMessages.push({
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content as string | AiContentItem[]
-      });
-    });
+    for (const msg of recentHistory) {
+      const role = msg.role as any;
+      let content = msg.content;
+      let tool_call_id = (msg as any).tool_call_id;
+      let tool_calls = (msg as any).tool_calls;
+      let name = (msg as any).name;
 
-    // 3. Image processing on the fly if it is passed separately
+      if (typeof msg.content === 'object' && !Array.isArray(msg.content)) {
+        const data = msg.content as any;
+        content = data.content || null;
+        if (data.tool_call_id) tool_call_id = data.tool_call_id;
+        if (data.tool_calls) tool_calls = data.tool_calls;
+        if (data.name) name = data.name;
+      }
+
+      const m: AiMessage = { role, content: content as any };
+      if (tool_call_id) m.tool_call_id = tool_call_id;
+      if (tool_calls) m.tool_calls = tool_calls;
+      if (name) m.name = name;
+
+      aiMessages.push(m);
+    }
+
     if (imageBase64 && aiMessages.length > 0) {
-      const lastMsg = aiMessages[aiMessages.length - 1];
-      if (lastMsg.role === 'user' && typeof lastMsg.content === 'string') {
-        const processedImage = await this.processImage(imageBase64);
-        lastMsg.content = [
-          { type: 'text', text: lastMsg.content },
-          { type: 'image_url', image_url: { url: processedImage } }
-        ];
+      const last = aiMessages[aiMessages.length - 1];
+      if (last.role === 'user' && typeof last.content === 'string') {
+        const img = await this.processImage(imageBase64, logger);
+        last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: img } }];
       }
     }
 
-    // Add messages from tools (for the second request in the tool loop)
-    if (extraMessages && extraMessages.length > 0) {
+    if (extraMessages) {
       for (const em of extraMessages) {
-        aiMessages.push(em);
+        const cleanExtra: AiMessage = { role: em.role, content: em.content || null };
+        if (em.tool_call_id) cleanExtra.tool_call_id = em.tool_call_id;
+        if (em.tool_calls) cleanExtra.tool_calls = em.tool_calls;
+        if (em.name) cleanExtra.name = em.name;
+        aiMessages.push(cleanExtra);
       }
     }
 
-    // Add tools only if the character has them enabled
-    const requestBody: Record<string, any> = {
+    const payload: any = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
       max_tokens: character.max_tokens ?? config.aiMaxTokens,
-      top_p: config.aiTopP,
-      frequency_penalty: config.aiFrequencyPenalty,
-      presence_penalty: config.aiPresencePenalty,
-      safe_prompt: config.aiSafePrompt,
-      provider: config.aiProvider,
-      reasoning: character.reasoning ? { effort: 'low', exclude: true } : config.aiReasoning,
       messages: aiMessages,
       stream: config.aiStreaming,
+      stream_options: config.aiStreaming ? { include_usage: true } : undefined
     };
 
-    if (config.aiStreaming) {
-      requestBody.stream_options = { include_usage: true };
-    }
-
-    logger.info('character', character);
-
-    // Add tools only if the character has them enabled
     if (character.tools === 1) {
-      requestBody.tools = ALL_TOOLS;
-      requestBody.tool_choice = 'auto';
-    }
-
-    if (config.debugAi && logger) {
-      logger.info({ tools: requestBody.tools, stream: config.aiStreaming }, '[AI SERVICE] Outgoing AI Request');
+      payload.tools = ALL_TOOLS;
+      payload.tool_choice = 'auto';
     }
 
     try {
-      const res = await axios.post(config.apiUrl, requestBody, {
-        headers: {
-          'Authorization': `Bearer ${config.apiKey}`,
-          'Content-Type': 'application/json'
-        },
+      const res = await axios.post(config.apiUrl, payload, {
+        headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
         responseType: config.aiStreaming ? 'stream' : 'json',
-        timeout: 60000 // Increased timeout for non-streaming
+        timeout: 60000
       });
-
-      if (config.debugAi && logger) {
-        logger.info({
-          status: res.status,
-          headers: res.headers
-        }, '[AI SERVICE] AI Response Started');
-      }
       return res;
     } catch (err: any) {
-      if (config.debugAi && logger) {
-        let errorData = err.response?.data;
-        
-        // If data is a stream, we need to read it to see the actual error message
-        if (errorData && typeof errorData.on === 'function') {
-          try {
-            // Buffer the error stream
-            const chunks: Buffer[] = [];
-            for await (const chunk of errorData) {
-                chunks.push(chunk);
-            }
-            errorData = Buffer.concat(chunks).toString();
-            try {
-              errorData = JSON.parse(errorData);
-            } catch (e) {
-              // Not a JSON error, keep as string
-            }
-          } catch (e) {
-            errorData = '[Could not read error stream]';
-          }
-        }
-
-        logger.error({
-          status: err.response?.status,
-          error: errorData || err.message,
-          headers: err.response?.headers
-        }, '[AI SERVICE] AI API Request Failed');
+      let errorData = err.response?.data;
+      if (errorData && typeof errorData.on === 'function') {
+        try {
+          const chunks = [];
+          for await (const chunk of errorData) chunks.push(chunk);
+          errorData = Buffer.concat(chunks).toString();
+          try { errorData = JSON.parse(errorData); } catch { }
+        } catch (r) { errorData = '[Stream error]'; }
       }
-      throw err;
+      const msg = errorData?.error?.message || errorData?.message || err.message;
+      logger?.error({ status: err.response?.status, error: msg }, '[AI SERVICE] API Failure');
+      throw new Error(`AI API Failure (${err.response?.status}): ${msg}`);
     }
   }
 
   /**
-   * High-level method — async generator for the route.
-   * Transparently handles the tool_calls loop:
-   *   1. Collects the stream
-   *   2. If the model calls tools — executes them, adds the results, and requests a final answer
-   *   3. Streams the final text in { reply: string } chunks
-   *   4. Upon completion, yields { done: true, fullReply: string }
+   * Generator for chat response
    */
   async *streamChatResponse(
     character: CharacterType,
@@ -252,154 +184,144 @@ export class AiService {
     message?: string,
     imageBase64?: string,
     logger?: any,
-    userName?: string
+    userName?: string,
+    userId?: number
   ): AsyncGenerator<{ reply?: string; done?: boolean; fullReply?: string }> {
-    // ── First request to AI ─────────────────────────────────────────────
-    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName);
 
+    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName);
     let fullReply = '';
-    const pendingToolCalls: Array<{
-      index: number;
-      id: string;
-      name: string;
-      argumentsRaw: string;
-    }> = [];
+    const pendingToolCalls: any[] = [];
+    let usage: any = null;
 
     if (config.aiStreaming) {
-      // ── Read the first stream ───────────────────────────────────────────
-      let firstChunkLogged = false;
-      await new Promise<void>((resolve, reject) => {
-        const parser = createParser({
-          onEvent: (event) => {
-            if (event.data === '[DONE]') { resolve(); return; }
-            try {
-              const data = JSON.parse(event.data);
-
-              if (!firstChunkLogged && data.model && config.debugAi) {
-                logger?.info({ model: data.model, id: data.id }, '[AI SERVICE] Session Started');
-                firstChunkLogged = true;
-              }
-
-              const delta = data.choices?.[0]?.delta;
-              if (!delta) return;
-
-              if (delta.content) {
-                fullReply += delta.content;
-              }
-
-              if (delta.tool_calls) {
-                for (const tc of delta.tool_calls) {
-                  const idx = tc.index ?? 0;
-                  if (!pendingToolCalls[idx]) {
-                    pendingToolCalls[idx] = { index: idx, id: tc.id || '', name: '', argumentsRaw: '' };
-                  }
-                  if (tc.function?.name) pendingToolCalls[idx].name += tc.function.name;
-                  if (tc.function?.arguments) pendingToolCalls[idx].argumentsRaw += tc.function.arguments;
-                }
-              }
-
-              const finishReason = data.choices?.[0]?.finish_reason;
-              if (finishReason === 'stop' || finishReason === 'tool_calls') {
-                resolve();
-              }
-            } catch { }
-          }
-        });
-
-        (async () => {
+      const parser = createParser({
+        onEvent: (event) => {
+          if (event.data === '[DONE]') return;
           try {
-            for await (const chunk of response.data) {
-              parser.feed(chunk.toString());
+            const data = JSON.parse(event.data);
+            if (data.usage) usage = data.usage;
+
+            const delta = data.choices?.[0]?.delta;
+            if (!delta) return;
+
+            if (delta.content) fullReply += delta.content;
+            if (delta.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                if (!pendingToolCalls[idx]) pendingToolCalls[idx] = { id: '', name: '', args: '' };
+                if (tc.id) pendingToolCalls[idx].id = tc.id;
+                if (tc.function?.name) pendingToolCalls[idx].name += tc.function.name;
+                if (tc.function?.arguments) pendingToolCalls[idx].args += tc.function.arguments;
+              }
             }
-            resolve();
-          } catch (err) {
-            reject(err);
-          }
-        })();
+          } catch { }
+        }
       });
+
+      let prevLen = 0;
+      for await (const chunk of response.data) {
+        parser.feed(chunk.toString());
+        if (fullReply.length > prevLen) {
+          yield { reply: fullReply.slice(prevLen) };
+          prevLen = fullReply.length;
+        }
+      }
     } else {
-      // ── Handle non-streaming response ──────────────────────────────────
-      const data = response.data;
-      const message = data.choices?.[0]?.message;
-      if (message) {
-        fullReply = message.content || '';
-        if (message.tool_calls) {
-          message.tool_calls.forEach((tc: any, idx: number) => {
-            pendingToolCalls.push({
-              index: idx,
-              id: tc.id,
-              name: tc.function.name,
-              argumentsRaw: tc.function.arguments
-            });
+      const resData = response.data.choices?.[0]?.message;
+      usage = response.data.usage;
+      if (resData) {
+        fullReply = resData.content || '';
+        if (resData.tool_calls) {
+          resData.tool_calls.forEach((tc: any) => {
+            pendingToolCalls.push({ id: tc.id, name: tc.function.name, args: tc.function.arguments });
           });
         }
       }
     }
 
-    // ── If tool_calls were detected — execute them and make a second request ───
     if (pendingToolCalls.length > 0) {
-      logger?.info({ count: pendingToolCalls.length }, '[AI SERVICE] Tool calls detected, executing');
+      const toolResultsRaw = await Promise.all(pendingToolCalls.map(async tc => ({
+        id: tc.id,
+        name: tc.name,
+        result: await executeTool(tc.name, tc.args, logger)
+      })));
 
-      const toolResults = await Promise.all(
-        pendingToolCalls.map(async (tc) => ({
-          tool_call_id: tc.id,
-          name: tc.name,
-          result: await executeTool(tc.name, tc.argumentsRaw, logger),
-        }))
-      );
+      const toolResultsForAi: any[] = [];
 
-      const assistantMsgWithToolCalls: AiMessage & { tool_calls?: any[] } = {
+      // Preservation of the text before image for triggerMsg
+      const preImageText = fullReply;
+
+      // Handle special injection and construct AI results
+      for (const tr of toolResultsRaw) {
+        if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
+          const url = tr.result;
+          const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
+          yield { reply: markdown };
+          fullReply += markdown;
+
+          toolResultsForAi.push({
+            role: 'tool',
+            tool_call_id: tr.id,
+            content: `Image: ${url} (Displayed to user)`
+          });
+        } else {
+          toolResultsForAi.push({
+            role: 'tool',
+            tool_call_id: tr.id,
+            content: tr.result
+          });
+        }
+      }
+
+      const assistantMsg: AiMessage = {
         role: 'assistant',
-        content: fullReply || '',
-        tool_calls: pendingToolCalls.map((tc) => ({
+        content: preImageText || null, // Send back what was already written
+        tool_calls: pendingToolCalls.map(tc => ({
           id: tc.id,
           type: 'function',
-          function: { name: tc.name, arguments: tc.argumentsRaw },
-        })),
+          function: { name: tc.name, arguments: tc.args }
+        }))
       };
 
-      const toolResultMessages = toolResults.map((tr) => ({
-        role: 'tool' as const,
-        tool_call_id: tr.tool_call_id,
-        name: tr.name,
-        content: tr.result,
-      }));
-
-      const secondResponse = await this.getAiResponse(
-        character, history, message, imageBase64, logger, userName,
-        [assistantMsgWithToolCalls, ...toolResultMessages]
-      );
-
-      fullReply = ''; // Reset for the final answer
+      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi]);
+      let prevLen = 0;
+      const secondStartLen = fullReply.length;
 
       if (config.aiStreaming) {
-        const parser2 = createParser({
+        const pParser = createParser({
           onEvent: (event) => {
             if (event.data === '[DONE]') return;
             try {
               const data = JSON.parse(event.data);
-              const content = data.choices?.[0]?.delta?.content;
-              if (content) fullReply += content;
+              if (data.usage) usage = data.usage;
+              const text = data.choices?.[0]?.delta?.content;
+              if (text) fullReply += text;
             } catch { }
           }
         });
-
-        let prevLen = 0;
-        for await (const chunk of secondResponse.data) {
-          parser2.feed(chunk.toString());
-          if (fullReply.length > prevLen) {
-            yield { reply: fullReply.slice(prevLen) };
-            prevLen = fullReply.length;
+        for await (const chunk of secondRes.data) {
+          pParser.feed(chunk.toString());
+          if (fullReply.length > (secondStartLen + prevLen)) {
+            yield { reply: fullReply.slice(secondStartLen + prevLen) };
+            prevLen = fullReply.length - secondStartLen;
           }
         }
       } else {
-        const data = secondResponse.data;
-        fullReply = data.choices?.[0]?.message?.content || '';
-        yield { reply: fullReply };
+        const more = secondRes.data.choices?.[0]?.message?.content || '';
+        usage = secondRes.data.usage;
+        fullReply += more;
+        yield { reply: more };
       }
-    } else {
-      // No tool_calls — return what we have
+    } else if (!config.aiStreaming) {
       if (fullReply) yield { reply: fullReply };
+    }
+
+    if (usage && logger) {
+      logger.info({
+        usage,
+        fullReplyLength: fullReply.length,
+        model: config.aiDefaultModel
+      }, '[AI SERVICE] Final Response Statistics');
     }
 
     yield { done: true, fullReply };

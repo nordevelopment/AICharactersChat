@@ -12,13 +12,14 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
   server.post('/api/chat', async (request, reply) => {
     const { message, character_id, image } = request.body as ChatRequestPayload;
     const userId = request.session.user!.id;
+    request.log.info({ character_id, userId, messageLength: message?.length }, '[CHAT ROUTE] Incoming chat request');
     if (!character_id) return reply.code(400).send({ error: 'ID required' });
 
     const activeCharacter = Character.findById(character_id);
     if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
 
     // Обработка первого контакта
-    const historyInDB = Message.getHistory(character_id, userId);
+    const historyInDB = Message.getHistory(character_id, userId, true);
     if (historyInDB.length === 0 && activeCharacter.first_message) {
       Message.add(character_id, userId, { role: 'assistant', content: activeCharacter.first_message }, 1);
     }
@@ -31,7 +32,7 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
       server.log.error(err, '[AI SERVICE] Background summarization failed');
     });
 
-    const history = Message.getHistory(character_id, userId);
+    const history = Message.getHistory(character_id, userId, true);
 
     try {
       let fullReply = '';
@@ -42,7 +43,8 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
           message,
           image,
           options?.logger || request.log,
-          request.session.user!.display_name
+          request.session.user!.display_name,
+          userId
         )) {
           if (chunk.reply) {
             yield { data: JSON.stringify({ reply: chunk.reply }) };
@@ -59,6 +61,7 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
             request.log.info({ fullText: fullReply }, '[AI SERVICE] Final Assembled Text');
           }
           Message.add(character_id, userId, { role: 'assistant', content: fullReply });
+          request.log.info({ character_id, userId }, '[CHAT ROUTE] Chat turn completed and saved');
         }
       })());
     } catch (error: any) {

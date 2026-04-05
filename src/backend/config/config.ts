@@ -29,7 +29,7 @@ export const config = {
   dbFile: path.join(process.cwd(), 'database.sqlite'),
   tempImagesDir: path.join(process.cwd(), 'storage', 'temp_images'),
   maxHistoryMessages: 20,
-  aiStreaming: process.env.AI_STREAMING ? process.env.AI_STREAMING === 'true' : false,
+  aiStreaming: process.env.AI_STREAMING ? process.env.AI_STREAMING === 'true' : true,
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
   debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : true,

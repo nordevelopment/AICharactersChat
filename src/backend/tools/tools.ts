@@ -1,4 +1,4 @@
-/**
+/** Tools for AI
  * Tools configuration
  * To enable/disable tools, change the enabled flag
 */
@@ -32,7 +32,7 @@ interface ToolDefinition {
 interface Tool {
     enabled: boolean;
     definition: ToolDefinition;
-    handler: (args: ToolArgs) => Promise<string>;
+    handler: (args: ToolArgs, logger?: any) => Promise<string>;
 }
 
 // ─── Shared resources ───────────────────────────────────────────────────────
@@ -46,14 +46,13 @@ async function ensureFilesDir(): Promise<void> {
 
 // ─── Handlers ───────────────────────────────────────────────────────────────
 
-async function handleCreateTextFile({ filename, content }: ToolArgs): Promise<string> {
+async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: any): Promise<string> {
     const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename) return 'Error: invalid filename provided.';
 
     const targetPath = path.join(FILES_DIR, safeFilename);
     if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';
 
-    // Некоторые AI-модели могут экранировать HTML или оборачивать в markdown
     let finalContent = content
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
@@ -66,10 +65,11 @@ async function handleCreateTextFile({ filename, content }: ToolArgs): Promise<st
     await ensureFilesDir();
     await fs.writeFile(targetPath, finalContent, 'utf-8');
 
+    logger?.info({ filename: safeFilename }, '[TOOLS] [create_text_file] File created');
     return `File "${safeFilename}" created successfully at storage/sandbox/${safeFilename}`;
 }
 
-async function handleReadTextFile({ filename }: ToolArgs): Promise<string> {
+async function handleReadTextFile({ filename }: ToolArgs, logger?: any): Promise<string> {
     const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename) return 'Error: invalid filename provided.';
 
@@ -78,29 +78,32 @@ async function handleReadTextFile({ filename }: ToolArgs): Promise<string> {
 
     try {
         const content = await fs.readFile(targetPath, 'utf-8');
+        logger?.info({ filename: safeFilename }, '[TOOLS] [read_text_file] File read');
         return `Contents of "${safeFilename}":\n\n${content}`;
     } catch (err: any) {
+        logger?.error({ filename: safeFilename, error: err.message }, '[TOOLS] [read_text_file] Failed read');
         if (err.code === 'ENOENT') return `Error: file "${safeFilename}" not found in sandbox.`;
         return `Error reading file "${safeFilename}": ${err.message}`;
     }
 }
 
-async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs): Promise<string> {
+async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs, logger?: any): Promise<string> {
     if (!prompt) return 'Error: prompt is required';
 
     try {
-        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' });
+        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' }, logger);
         if (!result.success) {
-            console.error('[TOOLS] [generate_image] Failed:', result.error);
-            return `Error generating image: ${result.error}`;
+            logger?.error({ prompt, error: result.error }, '[TOOLS] [generate_image] Generation failed');
+            return `Error creating image: ${result.error}`;
         }
-        console.log('[TOOLS] [generate_image] Success:', result.image_url);
-        return `![Image](${result.image_url})\n\n[Open image](${result.image_url})`;
+        logger?.info({ url: result.image_url }, '[TOOLS] [generate_image] Generation success');
+        return `${result.image_url}`;
     } catch (error: any) {
-        console.error('[TOOLS] [generate_image] Exception:', error.message);
-        return `Error generating image: ${error.message}`;
+        logger?.error({ error: error.message }, '[TOOLS] [generate_image] Exception');
+        return `Error creating image: ${error.message}`;
     }
 }
+
 
 // ─── Tools Registry ─────────────────────────────────────────────────────────
 const TOOLS: Record<string, Tool> = {
@@ -117,7 +120,7 @@ const TOOLS: Record<string, Tool> = {
                     type: 'object',
                     properties: {
                         filename: { type: 'string', description: 'File name (you can suggest appropriate name)' },
-                        content:  { type: 'string', description: 'Text content to write (user provides or you create)' },
+                        content: { type: 'string', description: 'Text content to write (user provides or you create)' },
                     },
                     required: ['filename', 'content'],
                 },
@@ -151,11 +154,11 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'generate_image',
-                description: 'Generates image. ALWAYS use this tool for any image request. NEVER create links manually.',
+                description: 'Generate image based on prompt. No need to return the image URL. The image will display automatically',
                 parameters: {
                     type: 'object',
                     properties: {
-                        prompt: { type: 'string', description: 'Detailed description of the image to generate (Subject, Action, Style, Context). In English' },
+                        prompt: { type: 'string', description: 'Detailed description of the image to generate (Subject, Action, Style, Context). In English.' },
                         aspect_ratio: { type: 'string', enum: ['1:1', '2:3', '3:2', '3:4', '4:3', '16:9', '9:16'], description: 'Aspect ratio', default: '1:1' },
                     },
                     required: ['prompt'],
@@ -163,7 +166,6 @@ const TOOLS: Record<string, Tool> = {
             },
         },
     },
-
 };
 
 export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
@@ -174,28 +176,25 @@ export async function executeTool(name: string, argsJson: string, logger?: any):
     const tool = TOOLS[name];
 
     if (!tool) {
-        logger?.warn(`[TOOLS] Unknown tool called: "${name}"`);
+        logger?.warn({ name }, '[TOOLS] Unknown tool called');
         return `Error: tool "${name}" is not implemented.`;
     }
 
     if (!tool.enabled) {
-        logger?.warn(`[TOOLS] Tool "${name}" is disabled.`);
+        logger?.warn({ name }, '[TOOLS] Tool is disabled');
         return `Error: tool "${name}" is currently disabled.`;
     }
 
     try {
         const args = JSON.parse(argsJson);
-        console.log(`[TOOLS] [${name}] Starting execution with args:`, argsJson);
-        logger?.info({ tool: name, args }, '[TOOLS] Executing tool');
-        
-        const result = await tool.handler(args);
-        
-        console.log(`[TOOLS] [${name}] Finished. Result length: ${result.length}`);
-        logger?.info({ tool: name, result }, '[TOOLS] Tool executed successfully');
+        logger?.info({ tool: name, args }, '[TOOLS] Starting execution');
+
+        const result = await tool.handler(args, logger);
+
+        logger?.info({ tool: name, resultLength: result.length }, '[TOOLS] Execution finished');
         return result;
     } catch (err: any) {
-        console.error(`[TOOLS] [${name}] JSON Parse or Execution Error:`, err.message, 'Raw args:', argsJson);
-        logger?.error({ tool: name, error: err.message }, '[TOOLS] Tool execution failed');
+        logger?.error({ tool: name, error: err.message, rawArgs: argsJson }, '[TOOLS] Execution error');
         return `Error executing tool "${name}": ${err.message}`;
     }
 }

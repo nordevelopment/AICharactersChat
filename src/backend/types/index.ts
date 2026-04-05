@@ -17,7 +17,7 @@ export interface ChatMessage {
   id?: number;
   user_id?: number;
   character_id?: number;
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | any[];
   is_greeting?: number;
   timestamp?: string;
