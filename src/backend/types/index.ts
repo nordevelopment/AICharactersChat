@@ -18,7 +18,10 @@ export interface ChatMessage {
   user_id?: number;
   character_id?: number;
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | any[];
+  content: string | any[] | null;
+  tool_calls?: any[];
+  tool_call_id?: string;
+  name?: string;
   is_greeting?: number;
   timestamp?: string;
 }

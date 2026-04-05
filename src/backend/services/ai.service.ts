@@ -99,23 +99,14 @@ export class AiService {
 
     for (const msg of recentHistory) {
       const role = msg.role as any;
-      let content = msg.content;
-      let tool_call_id = (msg as any).tool_call_id;
-      let tool_calls = (msg as any).tool_calls;
-      let name = (msg as any).name;
-
-      if (typeof msg.content === 'object' && !Array.isArray(msg.content)) {
-        const data = msg.content as any;
-        content = data.content || null;
-        if (data.tool_call_id) tool_call_id = data.tool_call_id;
-        if (data.tool_calls) tool_calls = data.tool_calls;
-        if (data.name) name = data.name;
-      }
-
-      const m: AiMessage = { role, content: content as any };
-      if (tool_call_id) m.tool_call_id = tool_call_id;
-      if (tool_calls) m.tool_calls = tool_calls;
-      if (name) m.name = name;
+      const m: AiMessage = { 
+        role, 
+        content: msg.content as any 
+      };
+      
+      if (msg.tool_call_id) m.tool_call_id = msg.tool_call_id;
+      if (msg.tool_calls) m.tool_calls = msg.tool_calls;
+      if (msg.name) m.name = msg.name;
 
       aiMessages.push(m);
     }
@@ -251,28 +242,6 @@ export class AiService {
       // Preservation of the text before image for triggerMsg
       const preImageText = fullReply;
 
-      // Handle special injection and construct AI results
-      for (const tr of toolResultsRaw) {
-        if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
-          const url = tr.result;
-          const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
-          yield { reply: markdown };
-          fullReply += markdown;
-
-          toolResultsForAi.push({
-            role: 'tool',
-            tool_call_id: tr.id,
-            content: `Image: ${url} (Displayed to user)`
-          });
-        } else {
-          toolResultsForAi.push({
-            role: 'tool',
-            tool_call_id: tr.id,
-            content: tr.result
-          });
-        }
-      }
-
       const assistantMsg: AiMessage = {
         role: 'assistant',
         content: preImageText || null, // Send back what was already written
@@ -283,9 +252,45 @@ export class AiService {
         }))
       };
 
+      // Сохраняем промежуточный ответ ассистента с тулл-коллами
+      if (userId) {
+        Message.add(character.id, userId, {
+          role: 'assistant',
+          content: assistantMsg.content as any,
+          tool_calls: assistantMsg.tool_calls
+        } as any);
+      }
+
+      // Handle special injection and construct AI results
+      for (const tr of toolResultsRaw) {
+        let toolContent = tr.result;
+        if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
+          const url = tr.result;
+          const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
+          yield { reply: markdown };
+          fullReply += markdown;
+          toolContent = `Image: ${url} (Displayed to user)`;
+        }
+
+        const toolMsg = {
+          role: 'tool' as const,
+          tool_call_id: tr.id,
+          content: toolContent,
+          name: tr.name
+        };
+
+        toolResultsForAi.push(toolMsg);
+
+        // Сохраняем результат инструмента
+        if (userId) {
+          Message.add(character.id, userId, toolMsg as any);
+        }
+      }
+
       const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi]);
       let prevLen = 0;
       const secondStartLen = fullReply.length;
+      let secondPartReply = '';
 
       if (config.aiStreaming) {
         const pParser = createParser({
@@ -295,8 +300,11 @@ export class AiService {
               const data = JSON.parse(event.data);
               if (data.usage) usage = data.usage;
               const text = data.choices?.[0]?.delta?.content;
-              if (text) fullReply += text;
-            } catch { }
+              if (text) {
+                fullReply += text;
+                secondPartReply += text;
+              }
+            } catch (e) { }
           }
         });
         for await (const chunk of secondRes.data) {
@@ -310,10 +318,25 @@ export class AiService {
         const more = secondRes.data.choices?.[0]?.message?.content || '';
         usage = secondRes.data.usage;
         fullReply += more;
+        secondPartReply = more;
         yield { reply: more };
       }
-    } else if (!config.aiStreaming) {
-      if (fullReply) yield { reply: fullReply };
+
+      // Сохраняем финальную часть ответа
+      if (userId && (secondPartReply || toolResultsRaw.some(tr => tr.name === 'generate_image'))) {
+        // Если была генерация изображения, мы добавляем маркдаун к ответу
+        // В fullReply уже есть маркдаун, добавленный в цикле выше
+        const finalContent = fullReply.slice(secondStartLen);
+        Message.add(character.id, userId, { role: 'assistant', content: finalContent });
+      }
+
+      // Возвращаем пустой fullReply, чтобы chat.routes.ts не сохранял дубликат
+      yield { done: true, fullReply: '' };
+    } else {
+      if (!config.aiStreaming && fullReply) {
+        yield { reply: fullReply };
+      }
+      yield { done: true, fullReply };
     }
 
     if (usage && logger) {
@@ -323,8 +346,6 @@ export class AiService {
         model: config.aiDefaultModel
       }, '[AI SERVICE] Final Response Statistics');
     }
-
-    yield { done: true, fullReply };
   }
 }
 

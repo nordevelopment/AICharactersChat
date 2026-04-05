@@ -74,7 +74,15 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const { character_id } = request.query as { character_id?: string };
     const userId = request.session.user!.id;
     if (!character_id) return [];
-    return Message.getHistory(parseInt(character_id), userId);
+    
+    const history = Message.getHistory(parseInt(character_id), userId);
+    
+    // Скрываем технические сообщения (роль tool и assistant без контента, только с tool_calls)
+    return history.filter(m => {
+      if (m.role === 'tool') return false;
+      if (m.role === 'assistant' && !m.content && m.tool_calls) return false;
+      return true;
+    });
   });
 
   server.delete('/api/history/:id', async (request) => {
