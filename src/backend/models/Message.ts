@@ -9,16 +9,16 @@ export class Message {
             try {
                 const parsed = JSON.parse(r.content);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                    // Если это наш объект с метаданными (тул-коллы и т.д.)
                     if (parsed.tool_calls || parsed.tool_call_id || parsed.name) {
-                        const { content, ...rest } = parsed;
-                        return { ...r, content, ...rest };
+                        // Возвращаем все поля как есть, включая tool_calls, tool_call_id, name
+                        return { ...r, ...parsed };
                     }
                 }
                 r.content = parsed;
             } catch (e) {
-                // Если не JSON (обычный текст), просто оставляем как есть
+
             }
+            
             return r;
         });
     }

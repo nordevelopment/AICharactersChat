@@ -18,21 +18,18 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const activeCharacter = Character.findById(character_id);
     if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
 
-    // Обработка первого контакта
-    const historyInDB = Message.getHistory(character_id, userId, true);
+    const historyInDB = Message.getHistory(character_id, userId);
     if (historyInDB.length === 0 && activeCharacter.first_message) {
       Message.add(character_id, userId, { role: 'assistant', content: activeCharacter.first_message }, 1);
     }
 
-    // Сохраняем текст пользователя
     Message.add(character_id, userId, { role: 'user', content: message });
 
-    // Суммаризация в фоне
     aiService.summarizeIfNeeded(character_id, userId, request.log).catch(err => {
       server.log.error(err, '[AI SERVICE] Background summarization failed');
     });
 
-    const history = Message.getHistory(character_id, userId, true);
+    const history = Message.getHistory(character_id, userId);
 
     try {
       let fullReply = '';
@@ -77,10 +74,12 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     
     const history = Message.getHistory(parseInt(character_id), userId);
     
-    // Скрываем технические сообщения (роль tool и assistant без контента, только с tool_calls)
+    // Скрываем технические сообщения от пользователя, но сохраняем их для ИИ
     return history.filter(m => {
+      // Скрываем сообщения tool (результаты инструментов)
       if (m.role === 'tool') return false;
-      if (m.role === 'assistant' && !m.content && m.tool_calls) return false;
+      // Скрываем assistant сообщения с tool_calls (промежуточные вызовы)
+      if (m.role === 'assistant' && m.tool_calls && !m.content) return false;
       return true;
     });
   });

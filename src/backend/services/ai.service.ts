@@ -108,6 +108,7 @@ export class AiService {
       if (msg.tool_calls) m.tool_calls = msg.tool_calls;
       if (msg.name) m.name = msg.name;
 
+      logger?.info({ message: m }, '[AI SERVICE] AI Message');
       aiMessages.push(m);
     }
 
@@ -125,10 +126,13 @@ export class AiService {
         if (em.tool_call_id) cleanExtra.tool_call_id = em.tool_call_id;
         if (em.tool_calls) cleanExtra.tool_calls = em.tool_calls;
         if (em.name) cleanExtra.name = em.name;
+
+        logger?.info({ message: cleanExtra }, '[AI SERVICE] Extra Message');
         aiMessages.push(cleanExtra);
       }
     }
 
+    logger?.info({ messages: aiMessages }, '[AI SERVICE] AI Request Messages');
     const payload: any = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
@@ -322,12 +326,10 @@ export class AiService {
         yield { reply: more };
       }
 
-      // Сохраняем финальную часть ответа
-      if (userId && (secondPartReply || toolResultsRaw.some(tr => tr.name === 'generate_image'))) {
-        // Если была генерация изображения, мы добавляем маркдаун к ответу
-        // В fullReply уже есть маркдаун, добавленный в цикле выше
-        const finalContent = fullReply.slice(secondStartLen);
-        Message.add(character.id, userId, { role: 'assistant', content: finalContent });
+      // Сохраняем финальный ответ с изображениями в markdown
+      if (userId && fullReply) {
+        // fullReply содержит текст + markdown для изображений
+        Message.add(character.id, userId, { role: 'assistant', content: fullReply });
       }
 
       // Возвращаем пустой fullReply, чтобы chat.routes.ts не сохранял дубликат
