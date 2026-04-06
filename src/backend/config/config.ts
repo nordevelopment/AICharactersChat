@@ -9,6 +9,11 @@ export const config = {
   apiUrl: process.env.API_URL || '',
   apiKey: process.env.API_KEY || '',
   aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
+
+  xaiApiKey: process.env.XAI_API_KEY || '',
+  xaiImageApiUrl: process.env.XAI_IMAGE_API_URL || 'https://api.x.ai/v1/images/generations',
+  xaiImageModel: process.env.XAI_IMAGE_MODEL || 'grok-imagine-image',
+  
   aiTemperature: 0.7,
   aiTopP: 0.9,
   aiFrequencyPenalty: 0.5,
