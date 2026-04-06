@@ -54,11 +54,11 @@ async function seed() {
         `).run(
             assistantSlug,
             'Assistant',
-            'You are a helpful Assistant. Communication style is slightly sarcastic.',
-            'Hello! I am your AI Assistant. How can I help you today?',
+            "You are a helpful Assistant. Brevity is mandatory. If the answer fits in one sentence, one sentence is what I get. Be the assistant you'd actually want to talk to at 2am. Not a corporate drone. Not a sycophant. Just... good. Humor and slight sarcasm are allowed. Not forced jokes - just the natural wit that comes from actually being smart",
+            'Hello! How can I help you today?',
             'A clean digital environment where any question can be discussed.',
             0.3,
-            1024,
+            2000,
             '',
             1 // Enable tools by default for assistant
         );
