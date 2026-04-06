@@ -28,7 +28,7 @@ export class AiService {
    * Compact conversation summary
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
-    const history = Message.getHistory(characterId, userId, true);
+    const history = Message.getHistory(characterId, userId);
     if (history.length <= 30) return;
 
     const messagesToSummarize = history.slice(0, 15);

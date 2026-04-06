@@ -95,7 +95,11 @@ export class ImageService {
 
                 const filePath = path.join(generatedDir, filename);
 
-                fs.writeFileSync(filePath, imageResponse.data);
+                if (imageResponse && imageResponse.data) {
+                    fs.writeFileSync(filePath, imageResponse.data);
+                } else {
+                    throw new Error('Failed to download image: No response data');
+                }
 
                 const imageUrl = `/storage/generated/${filename}`;
 
