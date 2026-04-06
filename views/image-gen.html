@@ -48,6 +48,160 @@
             padding: 20px;
         }
 
+        .provider-selector .btn-group .btn {
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid var(--accent-teal);
+        }
+
+        .provider-selector .btn-group .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(56, 140, 129, 0.3);
+        }
+
+        .setting-card {
+            background: rgba(16, 41, 53, 0.4);
+            border: 1px solid rgba(56, 140, 129, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            transition: var(--transition-smooth);
+        }
+
+        .setting-card:hover {
+            border-color: var(--accent-teal);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(56, 140, 129, 0.2);
+        }
+
+        .prompt-container {
+            position: relative;
+        }
+
+        .prompt-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(56, 140, 129, 0.2);
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .preview-text {
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .history-grid-modern {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .history-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+
+        .history-item:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-teal);
+            box-shadow: 0 4px 12px rgba(56, 140, 129, 0.3);
+        }
+
+        .history-image-container {
+            position: relative;
+            aspect-ratio: 1;
+        }
+
+        .history-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .history-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            color: white;
+            padding: 8px;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .history-item:hover .history-overlay {
+            opacity: 1;
+        }
+
+        .history-prompt {
+            display: -webkit-box;
+            display: -moz-box;
+            display: box;
+            -webkit-line-clamp: 2;
+            -moz-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            -moz-box-orient: vertical;
+            box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(220, 53, 69, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: rgba(220, 53, 69, 1);
+            transform: scale(1.1);
+        }
+
+        .form-range::-webkit-slider-thumb {
+            background: var(--accent-teal);
+        }
+
+        .form-range::-moz-range-thumb {
+            background: var(--accent-teal);
+        }
+
+        .range-value {
+            background: var(--accent-teal);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
         .history-grid img {
             width: 100%;
             height: 150px;
@@ -122,33 +276,70 @@
                 <div class="col-lg-5 mb-4">
                     <div class="image-settings-panel">
                         <div class="mb-3">
-                            <label class="form-label text-cyan">Prompt</label>
-                            <textarea x-model="form.prompt" class="form-control" rows="5"
-                                placeholder="Describe the image you want to see..."></textarea>
+                            <label class="form-label text-cyan">AI Provider</label>
+                            <div class="provider-selector">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="provider" id="xai-provider" 
+                                           value="xai" x-model="form.provider">
+                                    <label class="btn btn-outline-info" for="xai-provider">
+                                        <i class="bi bi-cpu"></i> X.AI Grok
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="provider" id="together-provider" 
+                                           value="together" x-model="form.provider">
+                                    <label class="btn btn-outline-success" for="together-provider">
+                                        <i class="bi bi-lightning"></i> Together AI
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="text-muted" x-show="currentProviderInfo">
+                                Default: <span x-text="currentProviderInfo.currentDefault"></span>
+                            </small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-cyan">Aspect Ratio</label>
-                            <select x-model="form.aspect_ratio" class="form-control">
-                                <option value="1:1">1:1 Square</option>
-                                <option value="3:4">3:4 Portrait</option>
-                                <option value="4:3">4:3 Landscape</option>
-                                <option value="9:16">9:16 Mobile</option>
-                                <option value="16:9">16:9 Cinematic</option>
-                                <option value="2:3">2:3 Vertical</option>
-                                <option value="3:2">3:2 Horizontal</option>
-                            </select>
+                            <label class="form-label text-cyan">Prompt</label>
+                            <div class="prompt-container">
+                                <textarea x-model="form.prompt" class="form-control" rows="3"
+                                          placeholder="Describe the image you want to see..."
+                                          @input="updatePromptPreview()"></textarea>
+                                <div class="prompt-preview" x-show="form.prompt.length > 0">
+                                    <small class="text-muted">Preview:</small>
+                                    <div class="preview-text" x-text="form.prompt"></div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-6">
-                                <label class="form-label text-cyan">Steps</label>
-                                <input type="number" x-model="form.steps" class="form-control" min="1" max="50">
+                            <div class="col-md-4 mb-2">
+                                <div class="setting-card">
+                                    <label class="form-label text-cyan small">Aspect Ratio</label>
+                                    <select x-model="form.aspect_ratio" class="form-control form-control-sm">
+                                        <option value="1:1">1:1</option>
+                                        <option value="3:4">3:4</option>
+                                        <option value="4:3">4:3</option>
+                                        <option value="9:16">9:16</option>
+                                        <option value="16:9">16:9</option>
+                                        <option value="2:3">2:3</option>
+                                        <option value="3:2">3:2</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label text-cyan">Guidance</label>
-                                <input type="number" x-model="form.guidance" class="form-control" step="0.5" min="1"
-                                    max="20">
+                            <div class="col-md-4 mb-2">
+                                <div class="setting-card">
+                                    <label class="form-label text-cyan small">
+                                        Steps <span class="range-value" x-text="form.steps"></span>
+                                    </label>
+                                    <input type="range" x-model="form.steps" class="form-range" min="1" max="50">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="setting-card">
+                                    <label class="form-label text-cyan small">
+                                        Guidance <span class="range-value" x-text="form.guidance"></span>
+                                    </label>
+                                    <input type="range" x-model="form.guidance" class="form-range" min="1" max="20" step="0.5">
+                                </div>
                             </div>
                         </div>
 
@@ -182,6 +373,9 @@
                         <template x-if="currentResult">
                             <div
                                 class="text-center w-100 p-2 h-100 d-flex flex-column align-items-center justify-content-center">
+                                <div class="mb-2">
+                                    <span class="badge bg-info mb-2" x-text="'Provider: ' + (form.provider === 'xai' ? 'X.AI' : 'Together AI')"></span>
+                                </div>
                                 <img :src="currentResult.image_url" alt="Generated Image" class="shadow-lg mb-3">
                                 <div class="d-flex gap-2">
                                     <a :href="currentResult.image_url" target="_blank"
@@ -206,18 +400,24 @@
                     </div>
 
                     <div class="mt-4" x-show="history.length > 0" style="display: none;">
-                        <h5 class="text-secondary mb-3">Recent Generations</h5>
-                        <div class="row g-2 history-grid">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="text-secondary mb-0">Recent Generations</h5>
+                            <button class="btn btn-sm btn-outline-danger" @click="clearHistory()">
+                                <i class="bi bi-trash"></i> Clear All
+                            </button>
+                        </div>
+                        <div class="history-grid-modern">
                             <template x-for="(item, index) in history" :key="index">
-                                <div class="col-3 col-md-2">
-                                    <div class="position-relative">
-                                        <img :src="item.image_url" :title="item.prompt" @click="viewHistoryItem(item)">
-                                        <button
-                                            class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle"
-                                            style="transform: translate(30%, -30%); padding: 0 6px; z-index: 5;"
-                                            title="Delete Image"
-                                            @click="deleteHistoryItem(item, index)">&times;</button>
+                                <div class="history-item" @click="viewHistoryItem(item)">
+                                    <div class="history-image-container">
+                                        <img :src="item.image_url" :alt="item.prompt">
+                                        <div class="history-overlay">
+                                            <span class="history-prompt" x-text="item.prompt"></span>
+                                        </div>
                                     </div>
+                                    <button class="delete-btn" @click.stop="deleteHistoryItem(item, index)">
+                                        <i class="bi bi-x"></i>
+                                    </button>
                                 </div>
                             </template>
                         </div>

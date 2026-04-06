@@ -10,6 +10,9 @@ export const config = {
   apiKey: process.env.API_KEY || '',
   aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
 
+  // Image service configuration
+  imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
+  
   xaiApiKey: process.env.XAI_API_KEY || '',
   xaiImageApiUrl: process.env.XAI_IMAGE_API_URL || 'https://api.x.ai/v1/images/generations',
   xaiImageModel: process.env.XAI_IMAGE_MODEL || 'grok-imagine-image',
@@ -18,7 +21,7 @@ export const config = {
   aiTopP: 0.9,
   aiFrequencyPenalty: 0.5,
   aiPresencePenalty: 0.5,
-  aiMaxTokens: 250,
+  aiMaxTokens: 300,
   aiSafePrompt: false,
   aiProvider: {
     sort: 'throughput'

@@ -1,12 +1,21 @@
 import { FastifyInstance } from 'fastify';
-import { ImageService } from '../services/image.service';
+import { ImageService } from '../services/image';
 
 const imageService = new ImageService();
+
+// Устанавливаем X.AI как провайдер по умолчанию
+imageService.setDefaultProvider('xai');
 
 export async function imageRoutes(fastify: FastifyInstance) {
     fastify.post('/api/images/generate', async (request, reply) => {
         try {
-            const body = request.body as { prompt: string; aspect_ratio?: string; steps?: number; guidance?: number };
+            const body = request.body as { 
+                prompt: string; 
+                aspect_ratio?: string; 
+                steps?: number; 
+                guidance?: number;
+                provider?: 'xai' | 'together';
+            };
 
             if (!body?.prompt) {
                 return reply.code(400).send({ success: false, error: 'Prompt is required' });
@@ -16,7 +25,7 @@ export async function imageRoutes(fastify: FastifyInstance) {
                 aspect_ratio: body.aspect_ratio,
                 steps: body.steps,
                 guidance: body.guidance
-            });
+            }, body.provider);
 
             if (!result.success) {
                 return reply.code(400).send(result);
@@ -26,6 +35,61 @@ export async function imageRoutes(fastify: FastifyInstance) {
         } catch (error: any) {
             fastify.log.error(error);
             return reply.code(500).send({ success: false, error: 'Internal server error while generating image' });
+        }
+    });
+
+    // Маршрут для редактирования изображений
+    fastify.post('/api/images/edit', async (request, reply) => {
+        try {
+            const body = request.body as { 
+                prompt: string; 
+                reference_images: string[];
+                aspect_ratio?: string; 
+                steps?: number; 
+                guidance?: number;
+                provider?: 'xai' | 'together';
+            };
+
+            if (!body?.prompt) {
+                return reply.code(400).send({ success: false, error: 'Prompt is required' });
+            }
+
+            if (!body.reference_images || body.reference_images.length === 0) {
+                return reply.code(400).send({ success: false, error: 'At least one reference image is required' });
+            }
+
+            const result = await imageService.editImage(body.prompt, {
+                reference_images: body.reference_images,
+                aspect_ratio: body.aspect_ratio,
+                steps: body.steps,
+                guidance: body.guidance
+            }, body.provider);
+
+            if (!result.success) {
+                return reply.code(400).send(result);
+            }
+
+            return reply.code(200).send(result);
+        } catch (error: any) {
+            fastify.log.error(error);
+            return reply.code(500).send({ success: false, error: 'Internal server error while editing image' });
+        }
+    });
+
+    // Маршрут для получения информации о провайдерах
+    fastify.get('/api/images/providers', async (request, reply) => {
+        try {
+            const providers = imageService.getAvailableProviders();
+            const currentDefault = imageService.getCurrentDefaultProvider();
+            
+            return reply.code(200).send({
+                success: true,
+                providers,
+                currentDefault
+            });
+        } catch (error: any) {
+            fastify.log.error(error);
+            return reply.code(500).send({ success: false, error: 'Internal server error while getting providers' });
         }
     });
 

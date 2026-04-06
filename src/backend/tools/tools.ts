@@ -5,7 +5,8 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { ImageService } from '../services/image.service';
+import { ImageService } from '../services/image';
+import { ImageProviderType } from '../services/image/interfaces/types';
 
 type ToolArgs = Record<string, string>;
 
@@ -87,11 +88,11 @@ async function handleReadTextFile({ filename }: ToolArgs, logger?: any): Promise
     }
 }
 
-async function handleGenerateImage({ prompt, aspect_ratio }: ToolArgs, logger?: any): Promise<string> {
+async function handleGenerateImage({ prompt, aspect_ratio, provider }: ToolArgs, logger?: any): Promise<string> {
     if (!prompt) return 'Error: prompt is required';
 
     try {
-        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' }, logger);
+        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' }, provider as ImageProviderType);
         if (!result.success) {
             logger?.error({ prompt, error: result.error }, '[TOOLS] [generate_image] Generation failed');
             return `Error creating image: ${result.error}`;
@@ -160,6 +161,7 @@ const TOOLS: Record<string, Tool> = {
                     properties: {
                         prompt: { type: 'string', description: 'Detailed description of the image to generate (Subject, Action, Style, Context). In English.' },
                         aspect_ratio: { type: 'string', enum: ['1:1', '2:3', '3:2', '3:4', '4:3', '16:9', '9:16'], description: 'Aspect ratio', default: '1:1' },
+                        provider: { type: 'string', enum: ['xai', 'together'], description: 'AI provider to use', default: 'xai' },
                     },
                     required: ['prompt'],
                 },
