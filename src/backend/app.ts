@@ -6,11 +6,11 @@ import { FastifySSEPlugin } from 'fastify-sse-v2';
 import { config } from './config/config';
 import fastifyCookie from '@fastify/cookie';
 import fastifySession from '@fastify/session';
-import { characterRoutes } from './routes/character.routes';
-import { chatRoutes } from './routes/chat.routes';
-import { authRoutes } from './routes/auth.routes';
-import { userRoutes } from './routes/user.routes';
-import { imageRoutes } from './routes/image.routes';
+import { characterRoutes } from './controllers/characters';
+import { chatRoutes } from './controllers/chat';
+import { authRoutes } from './controllers/auth';
+import { userRoutes } from './controllers/user';
+import { imageRoutes } from './controllers/image';
 import fastifyMultipart from '@fastify/multipart';
 
 
@@ -112,6 +112,21 @@ export async function createApp() {
   await server.register(fastifyStatic, {
     root: path.join(__dirname, '../../storage/avatars'),
     prefix: '/storage/avatars/',
+    decorateReply: false,
+    logLevel: 'warn'
+  });
+
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../../storage/images'),
+    prefix: '/storage/images/',
+    decorateReply: false,
+    logLevel: 'warn'
+  });
+
+
+  await server.register(fastifyStatic, {
+    root: path.join(__dirname, '../../storage/sandbox'),
+    prefix: '/storage/sandbox/',
     decorateReply: false,
     logLevel: 'warn'
   });

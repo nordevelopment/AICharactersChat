@@ -11,7 +11,6 @@ const start = async () => {
         host: config.host 
     });
     
-    console.log(`[SERVER] Started at http://${config.host}:${config.port}`);
   } catch (err) {
     console.error('[SERVER] Startup error:', err);
     process.exit(1);
