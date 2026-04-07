@@ -147,6 +147,10 @@ export class AiService {
       payload.tool_choice = 'auto';
     }
 
+    if (character.reasoning === 1) {
+      payload.include_reasoning = true;
+    }
+
     try {
       const res = await axios.post(config.apiUrl, payload, {
         headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
@@ -202,6 +206,7 @@ export class AiService {
 
             if (delta.content) fullReply += delta.content;
             if (delta.reasoning_content) reasoningText += delta.reasoning_content;
+            if (delta.reasoning) reasoningText += delta.reasoning;
             if (delta.tool_calls) {
               for (const tc of delta.tool_calls) {
                 const idx = tc.index ?? 0;
@@ -237,9 +242,10 @@ export class AiService {
       usage = response.data.usage;
       if (resData) {
         fullReply = resData.content || '';
-        if (resData.reasoning_content) {
-          if (logger) logger.info({ text: resData.reasoning_content }, '[AI SERVICE] Reasoning Pass 1');
-          yield { reasoning: resData.reasoning_content };
+        const pass1Reason = resData.reasoning_content || resData.reasoning;
+        if (pass1Reason) {
+          if (logger) logger.info({ text: pass1Reason }, '[AI SERVICE] Reasoning Pass 1');
+          yield { reasoning: pass1Reason };
         }
         if (resData.tool_calls) {
           resData.tool_calls.forEach((tc: any) => {
@@ -321,7 +327,7 @@ export class AiService {
               const data = JSON.parse(event.data);
               if (data.usage) usage = data.usage;
               const text = data.choices?.[0]?.delta?.content;
-              const reason = data.choices?.[0]?.delta?.reasoning_content;
+              const reason = data.choices?.[0]?.delta?.reasoning_content || data.choices?.[0]?.delta?.reasoning;
               if (text) {
                 fullReply += text;
                 secondPartReply += text;
@@ -346,7 +352,7 @@ export class AiService {
         }
       } else {
         const more = secondRes.data.choices?.[0]?.message?.content || '';
-        const moreReason = secondRes.data.choices?.[0]?.message?.reasoning_content || '';
+        const moreReason = secondRes.data.choices?.[0]?.message?.reasoning_content || secondRes.data.choices?.[0]?.message?.reasoning || '';
         usage = secondRes.data.usage;
         fullReply += more;
         secondPartReply = more;

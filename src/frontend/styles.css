@@ -12,6 +12,7 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --bs-card-bg: #0f3760;
+    --bs-secondary-color: #6a7475;
 }
 
 [x-cloak] {
@@ -577,6 +578,10 @@ select.form-control option {
 /* --- Mobile Styling --- */
 .sidebar-overlay {
     display: none;
+}
+
+.text-muted {
+    color: var(--text-dim);
 }
 
 @media (max-width: 768px) {
