@@ -575,7 +575,23 @@ select.form-control option {
 
 
 /* --- Mobile Styling --- */
+.sidebar-overlay {
+    display: none;
+}
+
 @media (max-width: 768px) {
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(3px);
+        z-index: 90;
+    }
+
     #chat-sidebar-toggle {
         background: var(--bg-card);
         padding: 5px;
@@ -625,4 +641,50 @@ select.form-control option {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-teal);
+}
+
+/* --- Premium Typing Indicator --- */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    min-height: 24px;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent-teal);
+    border-radius: 50%;
+    animation: typingPulse 1.4s infinite ease-in-out both;
+    box-shadow: 0 0 5px var(--accent-glow);
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes typingPulse {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0.4);
+        opacity: 0.3;
+    }
+
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+        background-color: #5cebdf;
+    }
 }

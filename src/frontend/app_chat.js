@@ -8,6 +8,7 @@ document.addEventListener('alpine:init', () => {
         sidebarActive: false,
         isTyping: false,
         typingMessage: '',
+        typingReasoning: '',
 
         async init() {
             // Check auth first (this will be handled by userProfileApp if combined,
@@ -21,7 +22,7 @@ document.addEventListener('alpine:init', () => {
             // Setup marked options
             const renderer = new marked.Renderer();
             const origLink = renderer.link.bind(renderer);
-            renderer.link = function(data) {
+            renderer.link = function (data) {
                 const html = origLink(data);
                 return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
             };
@@ -48,7 +49,9 @@ document.addEventListener('alpine:init', () => {
                 }
                 this.characters = await response.json();
                 if (this.characters.length > 0 && !this.currentCharacter) {
-                    this.selectCharacter(this.characters[0]);
+                    const lastId = localStorage.getItem('lastCharacterId');
+                    const savedChar = lastId ? this.characters.find(c => c.id == lastId) : null;
+                    this.selectCharacter(savedChar || this.characters[0]);
                 }
             } catch (err) {
                 console.error("Failed to load characters:", err);
@@ -58,6 +61,7 @@ document.addEventListener('alpine:init', () => {
         async selectCharacter(char) {
             if (this.currentCharacter?.id === char.id) return;
             this.currentCharacter = char;
+            localStorage.setItem('lastCharacterId', char.id);
             this.messages = [];
             this.sidebarActive = false;
             this.clearImage();
@@ -91,6 +95,7 @@ document.addEventListener('alpine:init', () => {
 
             this.isTyping = true;
             this.typingMessage = '';
+            this.typingReasoning = '';
 
             try {
                 const apiBase = window.APP_CONFIG?.apiBase || '/api';
@@ -121,15 +126,24 @@ document.addEventListener('alpine:init', () => {
                             try {
                                 const data = JSON.parse(line.substring(6));
                                 if (data.done) {
-                                    this.messages.push({ role: 'assistant', content: fullReply });
+                                    let msgContent = fullReply;
+                                    if (this.typingReasoning) {
+                                        msgContent = `<details class="reasoning-details mb-2"><summary class="text-muted small" style="cursor:pointer">Thought Process</summary>\n<div class="content text-muted small mt-1" style="border-left: 2px solid #555; padding-left: 8px;">\n${this.typingReasoning}\n</div>\n</details>\n\n` + msgContent;
+                                    }
+                                    this.messages.push({ role: 'assistant', content: msgContent });
                                     this.isTyping = false;
                                     this.typingMessage = '';
+                                    this.typingReasoning = '';
                                     this.scrollToBottom();
                                     return;
                                 }
                                 if (data.reply) {
                                     fullReply += data.reply;
                                     this.typingMessage = fullReply;
+                                    this.scrollToBottom();
+                                }
+                                if (data.reasoning) {
+                                    this.typingReasoning += data.reasoning;
                                     this.scrollToBottom();
                                 }
                             } catch (e) { }

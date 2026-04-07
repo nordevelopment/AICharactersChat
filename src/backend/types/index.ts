@@ -22,6 +22,7 @@ export interface ChatMessage {
   tool_calls?: any[];
   tool_call_id?: string;
   name?: string;
+  reasoning?: string;
   is_greeting?: number;
   timestamp?: string;
 }

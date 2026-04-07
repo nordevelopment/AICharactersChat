@@ -99,16 +99,16 @@ export class AiService {
 
     for (const msg of recentHistory) {
       const role = msg.role as any;
-      const m: AiMessage = { 
-        role, 
-        content: msg.content as any 
+      const m: AiMessage = {
+        role,
+        content: msg.content as any
       };
-      
+
       if (msg.tool_call_id) m.tool_call_id = msg.tool_call_id;
       if (msg.tool_calls) m.tool_calls = msg.tool_calls;
       if (msg.name) m.name = msg.name;
 
-      logger?.info({ message: m }, '[AI SERVICE] AI Message');
+      // logger?.info({ message: m }, '[AI SERVICE] AI Message');
       aiMessages.push(m);
     }
 
@@ -181,10 +181,11 @@ export class AiService {
     logger?: any,
     userName?: string,
     userId?: number
-  ): AsyncGenerator<{ reply?: string; done?: boolean; fullReply?: string }> {
+  ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; fullReply?: string }> {
 
     const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName);
     let fullReply = '';
+    let reasoningText = '';
     const pendingToolCalls: any[] = [];
     let usage: any = null;
 
@@ -200,6 +201,7 @@ export class AiService {
             if (!delta) return;
 
             if (delta.content) fullReply += delta.content;
+            if (delta.reasoning_content) reasoningText += delta.reasoning_content;
             if (delta.tool_calls) {
               for (const tc of delta.tool_calls) {
                 const idx = tc.index ?? 0;
@@ -214,18 +216,31 @@ export class AiService {
       });
 
       let prevLen = 0;
+      let prevReasoningLen = 0;
       for await (const chunk of response.data) {
         parser.feed(chunk.toString());
         if (fullReply.length > prevLen) {
           yield { reply: fullReply.slice(prevLen) };
           prevLen = fullReply.length;
         }
+        if (reasoningText.length > prevReasoningLen) {
+          yield { reasoning: reasoningText.slice(prevReasoningLen) };
+          prevReasoningLen = reasoningText.length;
+        }
+      }
+
+      if (reasoningText && logger) {
+        logger.info({ text: reasoningText }, '[AI SERVICE] Reasoning Pass 1');
       }
     } else {
       const resData = response.data.choices?.[0]?.message;
       usage = response.data.usage;
       if (resData) {
         fullReply = resData.content || '';
+        if (resData.reasoning_content) {
+          if (logger) logger.info({ text: resData.reasoning_content }, '[AI SERVICE] Reasoning Pass 1');
+          yield { reasoning: resData.reasoning_content };
+        }
         if (resData.tool_calls) {
           resData.tool_calls.forEach((tc: any) => {
             pendingToolCalls.push({ id: tc.id, name: tc.function.name, args: tc.function.arguments });
@@ -293,8 +308,10 @@ export class AiService {
 
       const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi]);
       let prevLen = 0;
+      let prevReasoningLen = 0;
       const secondStartLen = fullReply.length;
       let secondPartReply = '';
+      let secondReasoningText = '';
 
       if (config.aiStreaming) {
         const pParser = createParser({
@@ -304,10 +321,12 @@ export class AiService {
               const data = JSON.parse(event.data);
               if (data.usage) usage = data.usage;
               const text = data.choices?.[0]?.delta?.content;
+              const reason = data.choices?.[0]?.delta?.reasoning_content;
               if (text) {
                 fullReply += text;
                 secondPartReply += text;
               }
+              if (reason) secondReasoningText += reason;
             } catch (e) { }
           }
         });
@@ -317,12 +336,21 @@ export class AiService {
             yield { reply: fullReply.slice(secondStartLen + prevLen) };
             prevLen = fullReply.length - secondStartLen;
           }
+          if (secondReasoningText.length > prevReasoningLen) {
+            yield { reasoning: secondReasoningText.slice(prevReasoningLen) };
+            prevReasoningLen = secondReasoningText.length;
+          }
+        }
+        if (secondReasoningText && logger) {
+          logger.info({ text: secondReasoningText }, '[AI SERVICE] Reasoning Pass 2');
         }
       } else {
         const more = secondRes.data.choices?.[0]?.message?.content || '';
+        const moreReason = secondRes.data.choices?.[0]?.message?.reasoning_content || '';
         usage = secondRes.data.usage;
         fullReply += more;
         secondPartReply = more;
+        if (moreReason) yield { reasoning: moreReason };
         yield { reply: more };
       }
 

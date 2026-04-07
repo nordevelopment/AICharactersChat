@@ -46,6 +46,9 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
           if (chunk.reply) {
             yield { data: JSON.stringify({ reply: chunk.reply }) };
           }
+          if ((chunk as any).reasoning) {
+            yield { data: JSON.stringify({ reasoning: (chunk as any).reasoning }) };
+          }
           if (chunk.done) {
             fullReply = chunk.fullReply ?? '';
             yield { data: JSON.stringify({ done: true }) };
@@ -71,9 +74,9 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const { character_id } = request.query as { character_id?: string };
     const userId = request.session.user!.id;
     if (!character_id) return [];
-    
+
     const history = Message.getHistory(parseInt(character_id), userId);
-    
+
     // Скрываем технические сообщения от пользователя, но сохраняем их для ИИ
     return history.filter(m => {
       // Скрываем сообщения tool (результаты инструментов)
