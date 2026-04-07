@@ -48,7 +48,7 @@ export class AiService {
         ],
       }, {
         headers: { 'Authorization': `Bearer ${config.apiKey}` },
-        timeout: 30000
+        timeout: 60000
       });
 
       const summary = res.data.choices?.[0]?.message?.content;
@@ -155,7 +155,7 @@ export class AiService {
       const res = await axios.post(config.apiUrl, payload, {
         headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
         responseType: config.aiStreaming ? 'stream' : 'json',
-        timeout: 60000
+        timeout: 120000
       });
       return res;
     } catch (err: any) {

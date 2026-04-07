@@ -49,15 +49,15 @@ export class XAIImageProvider extends BaseImageProvider {
     protected async makeRequest(payload: any): Promise<any> {
         // Определяем URL в зависимости от типа payload
         const url = payload.images ? this.editUrl : this.apiUrl;
-        
+
         const axios = require('axios');
-        
+
         return axios.post(url, payload, {
             headers: {
                 'Authorization': `Bearer ${this.apiKey}`,
                 'Content-Type': 'application/json',
             },
-            timeout: 180000,
+            timeout: 120000,
         });
     }
 }

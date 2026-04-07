@@ -23,7 +23,7 @@ export class TogetherImageProvider extends BaseImageProvider {
             prompt: prompt,
             width,
             height,
-            steps: options.steps || 23,
+            steps: options.steps || 24,
             n: 1,
             guidance: options.guidance || 4,
             output_format: 'png',

@@ -26,7 +26,7 @@ export abstract class BaseImageProvider implements IImageProvider {
         try {
             const payload = this.buildGeneratePayload(safePrompt, options);
             const response = await this.makeRequest(payload);
-            
+
             if (response.data?.data?.[0]?.url) {
                 return await this.downloadAndSave(response.data.data[0].url, false);
             }
@@ -57,7 +57,7 @@ export abstract class BaseImageProvider implements IImageProvider {
         try {
             const payload = this.buildEditPayload(safePrompt, options);
             const response = await this.makeRequest(payload);
-            
+
             if (response.data?.data?.[0]?.url) {
                 return await this.downloadAndSave(response.data.data[0].url, true);
             }
@@ -113,7 +113,7 @@ export abstract class BaseImageProvider implements IImageProvider {
 
         const filename = `${randomBytes(6).toString('hex')}_${Date.now()}.png`;
         const generatedDir = path.join(process.cwd(), 'storage', 'generated');
-        
+
         if (!fs.existsSync(generatedDir)) {
             fs.mkdirSync(generatedDir, { recursive: true });
         }
@@ -141,7 +141,7 @@ export abstract class BaseImageProvider implements IImageProvider {
                 'Authorization': `Bearer ${this.apiKey}`,
                 'Content-Type': 'application/json',
             },
-            timeout: 180000,
+            timeout: 120000,
         });
     }
 
@@ -150,18 +150,18 @@ export abstract class BaseImageProvider implements IImageProvider {
      */
     protected handleError(error: any, operation: string): ImageResult {
         let errorMessage = error.message;
-        
+
         if (error.response) {
             const status = error.response.status;
             const apiError = error.response.data?.error?.message || error.response.data;
-            
+
             if (status === 500) {
                 errorMessage = 'Server error (500). Check your request parameters.';
             } else if (apiError) {
                 errorMessage = typeof apiError === 'string' ? apiError : JSON.stringify(apiError);
             }
         }
-        
+
         return { success: false, error: errorMessage };
     }
 
