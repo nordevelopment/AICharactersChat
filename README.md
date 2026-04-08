@@ -39,6 +39,14 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 
 ## 🚀 **Powerful Features**
 
+### 🧠 **Advanced Memory System (RAG)**
+
+- **Long-term Vector Memory** - Powered by `sqlite-vec` for storing and retrieving facts
+- **Semantic Search** - AI retrieves relevant memories based on conversation context
+- **Smart Fact Extraction** - Automatically extracts key information before cleaning history
+- **Explicit Commands** - Manually save facts using "Remember: [fact]" or "Запомни: [факт]"
+- **Infinite Context** - Never truly "forgets" important details, even after history cleanup
+
 ### 💬 **Smart Chat System**
 
 - **Real-time Streaming** - Watch AI responses appear word by word with SSE
@@ -75,7 +83,8 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 
 ```
 🚀 Fastify 5 (TypeScript)    → 2x faster than Express
-💾 SQLite                    → Zero-config database
+💾 SQLite + sqlite-vec       → Zero-config vector database
+🧠 RAG Architecture          → Long-term memory retrieval
 🔐 Session Auth              → Simple, secure authentication
 📡 SSE Streaming             → Real-time responses
 🎨 Sharp                     → Fast image processing
@@ -93,7 +102,7 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ### **AI Services**
 
 ```
-🤖 OpenRouter API           → Access to all major AI models
+🤖 OpenRouter API           → Access to all major AI models & Embeddings
 🎨 Together AI               → FLUX image generation
 ```
 
@@ -272,9 +281,9 @@ DEBUG_REQUESTS=true
 ### **AI Chat Engine**
 
 ```typescript
-// Streaming Architecture
-OpenRouter API → SSE Parser → Real-time Display
-Context Builder → Smart Summarization → Token Optimization
+// Memory Architecture
+User Message → Vector Search (sqlite-vec) → Relevant Facts → System Prompt Injection
+Context Builder → Fact Extraction → Vector Storage → History Cleanup
 ```
 
 ### **Image Generation Pipeline**
