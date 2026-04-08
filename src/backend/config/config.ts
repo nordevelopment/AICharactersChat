@@ -10,6 +10,8 @@ export const config = {
   apiKey: process.env.API_KEY || '',
   aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
 
+  aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || 'qwen/qwen3-embedding-4b',
+
   // Image service configuration
   imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
   
@@ -37,12 +39,14 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'a-very-long-and-secure-secret-key-that-is-at-least-32-characters-long',
   dbFile: path.join(process.cwd(), 'database.sqlite'),
   tempImagesDir: path.join(process.cwd(), 'storage', 'temp_images'),
-  maxHistoryMessages: 20,
+  maxHistoryMessages: 30,
   aiStreaming: process.env.AI_STREAMING ? process.env.AI_STREAMING === 'true' : true,
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
   debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : true,
   debugRequests: process.env.DEBUG_REQUESTS ? process.env.DEBUG_REQUESTS === 'true' : false,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  loggingDebug: process.env.LOGING_DEBUG === 'true',
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 

@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import * as sqliteVec from 'sqlite-vec';
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config/config';
@@ -7,6 +8,7 @@ function resetDatabase() {
     console.log('[DB] Starting database reset...');
 
     const db = new Database(config.dbFile);
+    sqliteVec.load(db);
 
     try {
         const schemaPath = path.join(__dirname, 'schema.sql');

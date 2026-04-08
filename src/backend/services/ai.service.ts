@@ -5,6 +5,7 @@ import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType } from '../types';
 import { Message } from '../models/Message';
 import { ALL_TOOLS, executeTool } from '../tools/tools';
+import { memoryService } from './memory.service';
 
 /**
  * OpenAI-compatible message types
@@ -25,42 +26,82 @@ interface AiMessage {
 
 export class AiService {
   /**
-   * Compact conversation summary
+   * Compact conversation summary and memory extraction
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
     const history = Message.getHistory(characterId, userId);
-    if (history.length <= 30) return;
+    // We use the limit from the config
+    if (history.length <= config.maxHistoryMessages) return;
 
-    const messagesToSummarize = history.slice(0, 15);
+    // We take the first half of the messages for compression and memory extraction
+    const countToSummarize = Math.floor(config.maxHistoryMessages / 2);
+    const messagesToSummarize = history.slice(0, countToSummarize);
     const idsToDelete = messagesToSummarize.filter(m => m.id).map(m => m.id!);
 
+    // We extract facts from the messages before deleting
+    await this.extractFacts(messagesToSummarize, characterId, userId, logger);
+
     try {
-      const prompt = 'Briefly summarize the dialogue';
+      // We delete the old messages
+      Message.deleteBatch(idsToDelete);
+      logger?.info({ count: idsToDelete.length }, '[AI SERVICE] Old history cleaned up and moved to vector memory');
+    } catch (e) {
+      logger?.error({ error: e }, '[AI SERVICE] History cleanup failed');
+    }
+  }
+
+  /**
+   * Extract key facts from history to long-term memory
+   */
+  async extractFacts(messages: ChatMessage[], characterId: number, userId: number, logger?: any): Promise<void> {
+    if (messages.length === 0) return;
+    try {
+      const historyText = messages.map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : '[Media]'}`).join('\n');
+      const prompt = `Extract key short facts events from this dialogue. 
+Return only a bulleted list of events, or "NONE" if no new events found. Use the same language as the dialogue.`;
+
       const res = await axios.post(config.apiUrl, {
         model: config.aiDefaultModel,
         temperature: 0.3,
         messages: [
           { role: 'system', content: prompt },
-          ...messagesToSummarize.map(m => ({
-            role: m.role,
-            content: typeof m.content === 'string' ? m.content : '[Attachment]'
-          }))
+          { role: 'user', content: historyText }
         ],
       }, {
         headers: { 'Authorization': `Bearer ${config.apiKey}` },
         timeout: 60000
       });
 
-      const summary = res.data.choices?.[0]?.message?.content;
-      if (summary) {
-        Message.deleteBatch(idsToDelete);
-        Message.add(characterId, userId, {
-          role: 'system',
-          content: `History Summary: ${summary.trim()}`
-        });
+      const content = res.data.choices?.[0]?.message?.content;
+      if (content && content.toUpperCase().indexOf('NONE') === -1) {
+        const facts = content.split('\n')
+          .map(f => f.replace(/^[-*]\s*/, '').trim())
+          .filter(f => f.length > 5); // Removed the colon requirement
+
+        for (const fact of facts) {
+          await memoryService.addMemory(userId, characterId, fact, logger);
+        }
+        logger?.info({ count: facts.length }, '[AI SERVICE] Facts extracted to memory');
       }
     } catch (e) {
-      logger?.error('[AI SERVICE] Summarization failed');
+      logger?.error({ error: e }, '[AI SERVICE] Fact extraction failed');
+    }
+  }
+
+  /**
+   * Check if current user message should be processed for memory immediately
+   */
+  async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
+    // Регулярка ловит "запомни", "remember" в начале строки с любым разделителем (: - — или просто пробел)
+    const memoryRegex = /^(запомни|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
+    const match = message.match(memoryRegex);
+    
+    if (match) {
+      const fact = match[2].trim();
+      if (fact.length > 2) {
+        logger?.info({ fact }, '[AI SERVICE] Saving explicit fact directly');
+        await memoryService.addMemory(userId, characterId, fact, logger);
+      }
     }
   }
 
@@ -86,13 +127,48 @@ export class AiService {
   }
 
   /**
+   * Inject relevant long-term memories into the system prompt (RAG)
+   */
+  async injectMemoryContext(sysPrompt: string, characterId: number, userId: number, query?: string, logger?: any): Promise<string> {
+    if (!query) return sysPrompt;
+
+    try {
+      const memories = await memoryService.searchMemories(userId, characterId, query, 5, logger);
+      if (memories.length > 0) {
+        const contextMemory = memories.map(m => `- ${m.content}`).join('\n');
+        const memoryBlock = `\n\n## YOUR LONG-TERM MEMORIES (USE WHEN NEEDED):\n${contextMemory}\n\nUse these memories if the user asks you about them or if you remember them.`;
+        
+        logger?.info({ 
+          count: memories.length, 
+          query,
+          memories: memories.map(m => m.content)
+        }, '[AI SERVICE] RAG Context injected into prompt');
+        
+        return sysPrompt + memoryBlock;
+      } else {
+        logger?.info({ query }, '[AI SERVICE] No relevant memories found');
+      }
+    } catch (err) {
+      logger?.error({ error: err }, '[AI SERVICE] RAG Search failed');
+    }
+
+    return sysPrompt;
+  }
+
+  /**
    * Core request to AI API
    */
-  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[]) {
+  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[], userId?: number) {
     let sys = character.system_prompt || 'Helpful assistant.';
     if (userName) sys = sys.replace(/{{user}}/g, userName);
     sys = sys.replace(/{{char}}/g, character.name);
     if (character.scenario) sys += `\nScenario: ${character.scenario}`;
+
+    // RAG: Search for relevant memories
+    if (userId) {
+      const query = newUserMessage || (history.length > 0 && typeof history[history.length - 1].content === 'string' ? history[history.length - 1].content : null);
+      sys = await this.injectMemoryContext(sys, character.id, userId, query as string, logger);
+    }
 
     const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
     const recentHistory = history.slice(-config.maxHistoryMessages);
@@ -187,7 +263,7 @@ export class AiService {
     userId?: number
   ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; fullReply?: string }> {
 
-    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName);
+    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName, undefined, userId);
     let fullReply = '';
     let reasoningText = '';
     const pendingToolCalls: any[] = [];
@@ -312,7 +388,7 @@ export class AiService {
         }
       }
 
-      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi]);
+      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
       let prevLen = 0;
       let prevReasoningLen = 0;
       const secondStartLen = fullReply.length;

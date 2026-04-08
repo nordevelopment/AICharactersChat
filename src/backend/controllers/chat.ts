@@ -25,6 +25,11 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
 
     Message.add(character_id, userId, { role: 'user', content: message });
 
+    // Try immediate memory extraction if it looks like a command
+    aiService.processImmediateMemory(message, character_id, userId, request.log).catch(err => {
+      server.log.error(err, '[AI SERVICE] Immediate memory extraction failed');
+    });
+
     aiService.summarizeIfNeeded(character_id, userId, request.log).catch(err => {
       server.log.error(err, '[AI SERVICE] Background summarization failed');
     });

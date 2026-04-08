@@ -7,6 +7,8 @@ PRAGMA foreign_keys = OFF;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS characters;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS character_memories;
+DROP TABLE IF EXISTS vec_character_memories;
 
 PRAGMA foreign_keys = ON;
 
@@ -48,5 +50,24 @@ CREATE TABLE messages (
   FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );
 
+-- Таблица фактов памяти
+CREATE TABLE character_memories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  character_id INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
 -- Индексы
 CREATE INDEX idx_messages_char_id ON messages (character_id);
+CREATE INDEX idx_memories_char_id ON character_memories (character_id);
+
+-- Виртуальная векторная таблица (sqlite-vec)
+-- Используем 1536 (OpenRouter возвращает 1536 для qwen/qwen3-embedding-4b)
+CREATE VIRTUAL TABLE vec_character_memories USING vec0(
+  embedding float[1536]
+);
+

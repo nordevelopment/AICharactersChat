@@ -39,28 +39,25 @@ export async function createApp() {
     }
   }
 
+  const isDev = config.nodeEnv !== 'production' || config.loggingDebug;
+
   const server = fastify({
     trustProxy: true,
     bodyLimit: 5242880,
-    logger: config.debugRequests ? {
-      level: 'info',
-      transport: {
+    disableRequestLogging: true,
+    logger: {
+      level: config.debugAi ? 'info' : 'warn',
+      // Теперь pino-pretty включается только если LOGING_DEBUG=true в .env
+      transport: config.loggingDebug ? {
         target: 'pino-pretty',
-        options: { colorize: true }
-      }
-    } : false
-  });
-
-  const aiLogger = config.debugRequests ? server.log : {
-    info: (data: any, message: string) => {
-      if (config.debugAi) {
-        console.log(`[AI SERVICE] ${message}`, data);
-      }
-    },
-    error: (data: any, message: string) => {
-      console.error(`[AI SERVICE ERROR] ${message}`, data);
+        options: { 
+          colorize: true,
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+        }
+      } : undefined
     }
-  };
+  });
 
   await server.register(fastifyMultipart);
 
@@ -141,7 +138,7 @@ export async function createApp() {
   await server.register(userRoutes);
   await server.register(characterRoutes);
 
-  await server.register(chatRoutes, { logger: aiLogger });
+  await server.register(chatRoutes);
   await server.register(imageRoutes);
 
   return server;

@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import * as sqliteVec from 'sqlite-vec';
 import { config } from '../config/config';
 
 let db: Database.Database;
@@ -11,10 +12,13 @@ export function initDB(): Database.Database {
 
   db = new Database(config.dbFile);
 
+  // Загружаем sqlite-vec векторную поддержку
+  sqliteVec.load(db);
+
   // WAL (Write-Ahead Logging) is crucial for concurrent performance in SQLite
   db.pragma('journal_mode = WAL');
 
-  console.log('[DB] SQLite connected and ready.');
+  console.log('[DB] SQLite connected and ready (with sqlite-vec).');
   return db;
 }
 
