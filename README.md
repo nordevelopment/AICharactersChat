@@ -1,4 +1,5 @@
 # AI Character Chat 🤖🎭
+
 > **The Lightweight AI Roleplay and Agents Platform - No Bloat, All Power**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,6 +8,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 
 ---
+
 > "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)**
 
 ## 🎯 **Why AI Character Chat?**
@@ -24,38 +26,42 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 
 ## ⚡ **Core Advantages**
 
-| Feature | AI Character Chat | SillyTavern | Character.AI |
-|---|---|---|---|
-| **Setup Time** | 5 minutes | 30+ minutes | Instant (cloud) |
-| **Installation** | 3 commands | Docker + config | Web only |
-| **Resource Usage** | ~100MB RAM | 2GB+ Docker | N/A |
-| **Local Control** | ✅ Full control | ✅ Full control | ❌ Cloud only |
-| **Customization** | ✅ Full source | ✅ Full source | ❌ Limited |
-| **Privacy** | ✅ 100% private | ✅ 100% private | ❌ Data collected |
+| Feature            | AI Character Chat | SillyTavern     | Character.AI      |
+| ------------------ | ----------------- | --------------- | ----------------- |
+| **Setup Time**     | 5 minutes         | 30+ minutes     | Instant (cloud)   |
+| **Installation**   | 3 commands        | Docker + config | Web only          |
+| **Resource Usage** | ~100MB RAM        | 2GB+ Docker     | N/A               |
+| **Local Control**  | ✅ Full control   | ✅ Full control | ❌ Cloud only     |
+| **Customization**  | ✅ Full source    | ✅ Full source  | ❌ Limited        |
+| **Privacy**        | ✅ 100% private   | ✅ 100% private | ❌ Data collected |
 
 ---
 
 ## 🚀 **Powerful Features**
 
 ### 💬 **Smart Chat System**
+
 - **Real-time Streaming** - Watch AI responses appear word by word with SSE
 - **Multi-User Support** - Each user gets isolated chat histories
 - **Smart Context Management** - Auto-summarization when history gets long
 - **Vision Support** - Upload images for AI to analyze
 
 ### 🎭 **Character Management**
+
 - **Visual Dashboard** - No JSON editing required
 - **Full Customization** - Personality, scenario, temperature, tokens
 - **Avatar Support** - Custom character images
 - **Quick Switching** - Jump between characters instantly
 
 ### 🎨 **AI Image Generation**
+
 - **FLUX Model** - High-quality image generation via Together AI
-- **7 Aspect Ratios** - Perfect for any use case
+- **Aspect Ratios** - Perfect for any use case
 - **Advanced Controls** - Steps, guidance scale, reference images
 - **Local Storage** - All images saved on your server
 
 ### 🛠️ **Agent Tools**
+
 - **File Operations** - AI can create and read text files
 - **Image Generation** - Generate images on demand
 - **Sandbox Security** - All operations isolated in safe environment
@@ -66,6 +72,7 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ## 🏗️ **Clean Architecture**
 
 ### **Backend Stack**
+
 ```
 🚀 Fastify 5 (TypeScript)    → 2x faster than Express
 💾 SQLite                    → Zero-config database
@@ -75,6 +82,7 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ```
 
 ### **Frontend Stack**
+
 ```
 ⚡ Alpine.js 3               → Lightweight reactivity (<10KB)
 🎨 Bootstrap 5               → Professional UI components
@@ -83,10 +91,12 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ```
 
 ### **AI Services**
+
 ```
 🤖 OpenRouter API           → Access to all major AI models
 🎨 Together AI               → FLUX image generation
 ```
+
 ---
 
 ## � **Project Structure**
@@ -136,23 +146,27 @@ storage/                       # Generated content (gitignored)
 ## 🚀 **Quick Start**
 
 ### **1. Install Dependencies**
+
 ```bash
 npm install
 ```
 
 ### **2. Setup Database**
+
 ```bash
 npm run db:reset    # Create fresh database
 npm run db:seed     # Add admin user + sample characters
 ```
 
 ### **3. Configure Environment**
+
 ```bash
 cp .env.example .env
 # Edit .env with your API keys
 ```
 
 ### **4. Launch**
+
 ```bash
 # Development (hot-reload)
 npm run dev
@@ -168,6 +182,7 @@ npm run build && npm run start
 ## ⚙️ **Configuration**
 
 ### **Required Environment Variables**
+
 ```env
 # Server
 PORT=3000
@@ -192,6 +207,7 @@ SESSION_SECRET=your_32_char_secret_key
 ```
 
 ### **Optional Settings**
+
 ```env
 # Debugging
 AI_DEBUG_LOGS=true
@@ -224,6 +240,7 @@ DEBUG_REQUESTS=true
 ## 🤖 **AI Capabilities**
 
 ### **Supported Models**
+
 - **Grok** (xAI) - Fast, conversational
 - **Claude** (Anthropic) - Advanced reasoning
 - **GPT-4** (OpenAI) - Versatile and powerful
@@ -231,6 +248,7 @@ DEBUG_REQUESTS=true
 - **And many more** via OpenRouter
 
 ### **Agent Tools**
+
 - **File Creation** - AI can write text files
 - **File Reading** - AI can read existing files
 - **Image Generation** - Create images on demand
@@ -240,18 +258,19 @@ DEBUG_REQUESTS=true
 
 ## 📱 **Pages & Navigation**
 
-| Route | Description | Features |
-|---|---|---|
-| **`/`** | Login & Register | Session-based authentication |
-| **`/chat`** | Main Chat Interface | Real-time SSE streaming, image uploads |
-| **`/characters`** | Character Dashboard | Full CRUD management, avatars |
-| **`/image-gen`** | Image Generator | FLUX model, aspect ratios, controls |
+| Route             | Description         | Features                               |
+| ----------------- | ------------------- | -------------------------------------- |
+| **`/`**           | Login & Register    | Session-based authentication           |
+| **`/chat`**       | Main Chat Interface | Real-time SSE streaming, image uploads |
+| **`/characters`** | Character Dashboard | Full CRUD management, avatars          |
+| **`/image-gen`**  | Image Generator     | FLUX model, aspect ratios, controls    |
 
 ---
 
 ## 🧠 **Technical Deep Dive**
 
 ### **AI Chat Engine**
+
 ```typescript
 // Streaming Architecture
 OpenRouter API → SSE Parser → Real-time Display
@@ -259,12 +278,14 @@ Context Builder → Smart Summarization → Token Optimization
 ```
 
 ### **Image Generation Pipeline**
+
 ```typescript
 User Prompt → Together AI → FLUX Model → Image Download → Local Storage
 Aspect Ratio → Pixel Optimization → Sharp Processing → Static Serving
 ```
 
 ### **Database Schema**
+
 ```sql
 users        → Authentication & profiles
 characters   → AI personalities & settings
@@ -275,19 +296,20 @@ messages     → Chat history with metadata
 
 ## ⚡ **Performance Benefits**
 
-| Metric | AI Character Chat | Traditional Solutions |
-|---|---|---|
-| **Startup Time** | ~2 seconds | 30+ seconds (Docker) |
-| **Memory Usage** | ~100MB | 2GB+ (Docker) |
-| **Disk Space** | ~50MB | 500MB+ |
-| **Response Latency** | <500ms | 1000ms+ |
-| **Setup Complexity** | 3 commands | Docker + config |
+| Metric               | AI Character Chat | Traditional Solutions |
+| -------------------- | ----------------- | --------------------- |
+| **Startup Time**     | ~2 seconds        | 30+ seconds (Docker)  |
+| **Memory Usage**     | ~100MB            | 2GB+ (Docker)         |
+| **Disk Space**       | ~50MB             | 500MB+                |
+| **Response Latency** | <500ms            | 1000ms+               |
+| **Setup Complexity** | 3 commands        | Docker + config       |
 
 ---
 
 ## 🎯 **Use Cases**
 
 ### **Perfect For:**
+
 - **Roleplaying Enthusiasts** - Create and manage AI characters
 - **Writers & Storytellers** - Develop characters and dialogue
 - **Developers** - AI-powered coding assistants
@@ -295,6 +317,7 @@ messages     → Chat history with metadata
 - **Privacy-Conscious Users** - 100% local control
 
 ### **Not For:**
+
 - **Mobile-Only Users** - Requires self-hosting
 - **No-Tech Users** - Basic setup required
 - **Enterprise Scale** - Designed for small teams/personal use
@@ -304,6 +327,7 @@ messages     → Chat history with metadata
 ## 🛠️ **Development**
 
 ### **Tech Stack Details**
+
 - **Backend**: Fastify 5 + TypeScript + SQLite
 - **Frontend**: Alpine.js 3 + Bootstrap 5 + Vanilla JS
 - **AI**: OpenRouter + Together AI
@@ -311,6 +335,7 @@ messages     → Chat history with metadata
 - **Auth**: Session-based + bcrypt
 
 ### **Key Architectural Decisions**
+
 - **SQLite over PostgreSQL** - Zero config, perfect for self-hosting
 - **Sessions over JWT** - Simpler, more secure for this use case
 - **Alpine.js over React** - Lightweight, no build step needed
@@ -329,6 +354,7 @@ We welcome contributions! Here's how to get started:
 5. **Submit a pull request**
 
 ### **Development Guidelines**
+
 - Follow existing code style
 - Add TypeScript types for new features
 - Update documentation
@@ -354,9 +380,9 @@ MIT License - feel free to use this project for personal or commercial purposes.
 
 ## 📞 **Support**
 
-- **Issues**: [GitHub Issues](https://github.com/nordev/ai-character-chat/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/nordev/ai-character-chat/discussions)
-- **Documentation**: [Wiki](https://github.com/nordev/ai-character-chat/wiki)
+- **Issues**: [GitHub Issues](https://github.com/nordevelopment/AICharactersChat/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/nordevelopment/AICharactersChat/discussions)
+- **Documentation**: [Wiki](https://github.com/nordevelopment/AICharactersChat/wiki)
 
 ---
 
@@ -364,10 +390,11 @@ MIT License - feel free to use this project for personal or commercial purposes.
 
 **⭐ Star this repo if it helped you!**
 
-*Made with ❤️ by [Norayr Petrosyan](https://github.com/nordev)*
+_Made with ❤️ by AI [Norayr Petrosyan](https://github.com/nordevelopment)_
+_Developed with AI control and Architecture by Norayr Petrosyan_
 
 ---
 
-*Built with a touch of sarcasm and faith in a digital future.*
+_Built with a touch of sarcasm and faith in a digital future._
 
 </div>
