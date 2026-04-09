@@ -10,23 +10,6 @@ export async function characterRoutes(server: FastifyInstance) {
   // Защищаем управление персонажами
   server.addHook('preHandler', server.authenticate);
 
-  server.post('/api/characters/upload-avatar', async (request, reply) => {
-    const data = await request.file();
-    if (!data) return reply.code(400).send({ error: 'No file uploaded' });
-
-    const buffer = await data.toBuffer();
-    const safeFilename = data.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${Date.now()}-${safeFilename}`;
-    const storagePath = path.join(__dirname, '../../../storage/avatars', fileName);
-    const publicPath = `/storage/avatars/${fileName}`;
-
-    await sharp(buffer)
-      .resize({ height: config.avatarHeight })
-      .toFile(storagePath);
-
-    return { path: publicPath };
-  });
-
   server.get('/api/characters', async () => Character.all());
 
   server.get('/api/characters/:slug', async (request, reply) => {
@@ -60,4 +43,23 @@ export async function characterRoutes(server: FastifyInstance) {
     Character.delete(slug);
     return { success: true };
   });
+
+
+  server.post('/api/characters/upload-avatar', async (request, reply) => {
+    const data = await request.file();
+    if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+    const buffer = await data.toBuffer();
+    const safeFilename = data.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${Date.now()}-${safeFilename}`;
+    const storagePath = path.join(__dirname, '../../../storage/avatars', fileName);
+    const publicPath = `/storage/avatars/${fileName}`;
+
+    await sharp(buffer)
+      .resize({ height: config.avatarHeight })
+      .toFile(storagePath);
+
+    return { path: publicPath };
+  });
+
 }

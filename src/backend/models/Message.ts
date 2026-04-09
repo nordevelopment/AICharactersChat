@@ -49,8 +49,9 @@ export class Message {
 
     static deleteBatch(ids: number[]): void {
         if (ids.length === 0) return;
-        const stmt = getDB().prepare(`DELETE FROM messages WHERE id IN (${ids.join(',')})`);
-        stmt.run();
+        const placeholders = ids.map(() => '?').join(',');
+        const stmt = getDB().prepare(`DELETE FROM messages WHERE id IN (${placeholders})`);
+        stmt.run(...ids);
     }
 
     static deleteAll(userId: number): void {

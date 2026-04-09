@@ -6,10 +6,10 @@ dotenv.config();
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   host: process.env.HOST || '0.0.0.0',
-  apiUrl: process.env.API_URL || '',
+  apiUrl: process.env.API_URL || 'https://openrouter.ai/api/v1/chat/completions',
   apiKey: process.env.API_KEY || '',
-  aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
 
+  aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
   aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || 'qwen/qwen3-embedding-4b',
 
   // Image service configuration
@@ -50,7 +50,23 @@ export const config = {
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 
-// Простая проверка обязательных переменных
-if (!config.apiUrl || !config.apiKey) {
-  console.warn('[CONFIG] WARNING: API_URL or API_KEY is missing in .env');
+// Валидация обязательных переменных окружения
+const requiredEnvVars = [
+  { key: 'API_URL', value: config.apiUrl },
+  { key: 'API_KEY', value: config.apiKey },
+];
+
+const missingVars = requiredEnvVars.filter(v => !v.value);
+
+if (missingVars.length > 0) {
+  console.error('\n' + '='.repeat(50));
+  console.error('❌ [CONFIG ERROR] Missing required environment variables:');
+  missingVars.forEach(v => console.error(`   - ${v.key}`));
+  console.error('Please check your .env file.');
+  console.error('='.repeat(50) + '\n');
+  
+  // В режиме продакшена выходим с ошибкой, в деве просто громко предупреждаем
+  if (config.nodeEnv === 'production') {
+    process.exit(1);
+  }
 }
