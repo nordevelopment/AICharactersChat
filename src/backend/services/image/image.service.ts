@@ -75,6 +75,14 @@ export class ImageService {
     }
 
     /**
+     * List all generated images
+     */
+    async listImages(): Promise<{ success: boolean; images: any[]; error?: string }> {
+        const imageProvider = this.getDefaultProvider();
+        return imageProvider.listImages();
+    }
+
+    /**
      * Получить список доступных провайдеров
      */
     getAvailableProviders(): ImageProviderType[] {

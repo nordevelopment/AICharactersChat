@@ -32,7 +32,7 @@ export class MemoryService {
         } catch (error: any) {
             const errorMsg = error.response?.data || error.message;
             if (logger) {
-                logger.error({ error: errorMsg, text }, '[MEMORY SERVICE] Embedding error');
+                logger.error({ error: errorMsg, text: text.substring(0, 100) }, '[MEMORY SERVICE] Embedding error');
             } else {
                 console.error('[MEMORY SERVICE] Embedding error:', errorMsg);
             }

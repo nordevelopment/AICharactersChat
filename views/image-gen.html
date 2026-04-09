@@ -399,9 +399,15 @@
                         </template>
                     </div>
 
-                    <div class="mt-4" x-show="history.length > 0" style="display: none;">
+                    <div class="mt-4" x-show="history.length > 0 && showHistory">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="text-secondary mb-0">Recent Generations</h5>
+                            <div class="d-flex align-items-center">
+                                <h5 class="text-secondary mb-0 me-3">Recent Generations</h5>
+                                <button class="btn btn-sm btn-outline-secondary" @click="showHistory = !showHistory">
+                                    <i class="bi" :class="showHistory ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                                    <span x-text="showHistory ? 'Hide' : 'Show'"></span>
+                                </button>
+                            </div>
                             <button class="btn btn-sm btn-outline-danger" @click="clearHistory()">
                                 <i class="bi bi-trash"></i> Clear All
                             </button>
@@ -420,6 +426,16 @@
                                     </button>
                                 </div>
                             </template>
+                        </div>
+                    </div>
+
+                    <!-- Show History Button (when hidden) -->
+                    <div class="mt-4" x-show="history.length > 0 && !showHistory">
+                        <div class="text-center">
+                            <button class="btn btn-outline-secondary" @click="showHistory = true">
+                                <i class="bi bi-images"></i>
+                                Show Recent Generations (<span x-text="history.length"></span>)
+                            </button>
                         </div>
                     </div>
                 </div>

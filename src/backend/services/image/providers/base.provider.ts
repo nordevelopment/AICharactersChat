@@ -166,6 +166,40 @@ export abstract class BaseImageProvider implements IImageProvider {
     }
 
     /**
+     * List all generated images
+     */
+    async listImages(): Promise<{ success: boolean; images: any[]; error?: string }> {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            
+            const generatedDir = path.join(process.cwd(), 'storage', 'generated');
+            
+            if (!fs.existsSync(generatedDir)) {
+                return { success: true, images: [] };
+            }
+            
+            const files = fs.readdirSync(generatedDir);
+            const imageFiles = files
+                .filter((file: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
+                .map((file: string) => {
+                    const filePath = path.join(generatedDir, file);
+                    const stats = fs.statSync(filePath);
+                    return {
+                        filename: file,
+                        created_at: stats.birthtime.toISOString(),
+                        size: stats.size
+                    };
+                })
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            
+            return { success: true, images: imageFiles };
+        } catch (error: any) {
+            return { success: false, images: [], error: error.message };
+        }
+    }
+
+    /**
      * Построение payload для генерации (должен быть реализован в наследниках)
      */
     protected abstract buildGeneratePayload(prompt: string, options: GenerateOptions): any;

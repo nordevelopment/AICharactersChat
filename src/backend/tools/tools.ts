@@ -48,8 +48,22 @@ async function ensureFilesDir(): Promise<void> {
 // ─── Handlers ───────────────────────────────────────────────────────────────
 
 async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: any): Promise<string> {
+    // Strict filename validation
     const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
-    if (!safeFilename) return 'Error: invalid filename provided.';
+    if (!safeFilename || safeFilename.length === 0) {
+      return 'Error: invalid filename provided.';
+    }
+    
+    // Prevent path traversal and reserved names
+    const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
+    if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
+      return 'Error: invalid or unsafe filename.';
+    }
+    
+    // Limit filename length
+    if (safeFilename.length > 255) {
+      return 'Error: filename too long (max 255 characters).';
+    }
 
     const targetPath = path.join(FILES_DIR, safeFilename);
     if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';
@@ -71,8 +85,22 @@ async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: an
 }
 
 async function handleReadTextFile({ filename }: ToolArgs, logger?: any): Promise<string> {
+    // Strict filename validation
     const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
-    if (!safeFilename) return 'Error: invalid filename provided.';
+    if (!safeFilename || safeFilename.length === 0) {
+      return 'Error: invalid filename provided.';
+    }
+    
+    // Prevent path traversal and reserved names
+    const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
+    if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
+      return 'Error: invalid or unsafe filename.';
+    }
+    
+    // Limit filename length
+    if (safeFilename.length > 255) {
+      return 'Error: filename too long (max 255 characters).';
+    }
 
     const targetPath = path.join(FILES_DIR, safeFilename);
     if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';

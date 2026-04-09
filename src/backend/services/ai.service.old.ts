@@ -404,12 +404,9 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         let toolContent = tr.result;
         if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
           const url = tr.result;
-          // Check if AI already included this image in the response
-          if (!fullReply.includes(url)) {
-            const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
-            yield { reply: markdown };
-            fullReply += markdown;
-          }
+          const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
+          yield { reply: markdown };
+          fullReply += markdown;
           toolContent = `Image: ${url} (Displayed to user)`;
         }
 

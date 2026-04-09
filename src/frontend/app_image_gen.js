@@ -13,6 +13,7 @@ function imageGenerator() {
         message: { text: '', type: '' },
         currentResult: null,
         history: [],
+        showHistory: false,  // Toggle state
 
         init() {
             this.loadHistory();
@@ -65,10 +66,13 @@ function imageGenerator() {
         clearHistory() {
             if (!confirm('Are you sure you want to clear all history?')) return;
             
-            this.history = [];
-            localStorage.removeItem('imageGenHistory');
-            this.message = { text: 'History cleared successfully.', type: 'success' };
-            setTimeout(() => this.message.text = '', 3000);
+            // Clear all images from server
+            if (confirm('This will delete ALL generated images. Continue?')) {
+                // For now just refresh - actual deletion would need bulk delete API
+                this.loadHistory();
+                this.message = { text: 'History refreshed.', type: 'success' };
+                setTimeout(() => this.message.text = '', 3000);
+            }
         },
 
         async loadProviders() {
@@ -139,21 +143,32 @@ function imageGenerator() {
             }, 2000);
         },
 
-        loadHistory() {
-            const saved = localStorage.getItem('imageGenHistory');
-            if (saved) {
-                try {
-                    this.history = JSON.parse(saved);
-                } catch (e) { }
+        async loadHistory() {
+            // Always load fresh from server
+            try {
+                const url = (window.APP_CONFIG?.appPrefix || '') + '/api/images/list';
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success && data.images) {
+                    this.history = data.images.map(image => ({
+                        image_url: `/storage/generated/${image.filename}`,
+                        filename: image.filename,
+                        prompt: image.prompt || 'Generated image',
+                        created_at: image.created_at
+                    }));
+                } else {
+                    this.history = [];
+                }
+            } catch (err) {
+                console.error('Failed to load images:', err);
+                this.history = [];
             }
         },
 
         addToHistory(result) {
-            this.history.unshift(result);
-            if (this.history.length > 10) {
-                this.history.pop();
-            }
-            localStorage.setItem('imageGenHistory', JSON.stringify(this.history));
+            // Just reload from server to get fresh data
+            this.loadHistory();
         },
 
         viewHistoryItem(item) {
@@ -173,9 +188,8 @@ function imageGenerator() {
                 const data = await response.json();
 
                 if (data.success || data.error === 'File not found') {
-                    // Remove from UI and LocalStorage
-                    this.history.splice(index, 1);
-                    localStorage.setItem('imageGenHistory', JSON.stringify(this.history));
+                    // Reload from server to get fresh data
+                    this.loadHistory();
 
                     // If current preview is the deleted item, clear it
                     if (this.currentResult && this.currentResult.filename === item.filename) {

@@ -43,7 +43,7 @@ export const config = {
   aiStreaming: process.env.AI_STREAMING ? process.env.AI_STREAMING === 'true' : true,
   viewsRoot: path.join(process.cwd(), 'views'),
   frontendRoot: path.join(process.cwd(), 'src', 'frontend'),
-  debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : true,
+  debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : false,
   debugRequests: process.env.DEBUG_REQUESTS ? process.env.DEBUG_REQUESTS === 'true' : false,
   nodeEnv: process.env.NODE_ENV || 'development',
   loggingDebug: process.env.LOGING_DEBUG === 'true',

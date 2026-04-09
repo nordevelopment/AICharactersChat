@@ -1,11 +1,13 @@
 import axios from 'axios';
 import sharp from 'sharp';
 import { createParser } from 'eventsource-parser';
-import { config } from '../config/config';
-import { ChatMessage, Character as CharacterType } from '../types';
-import { Message } from '../models/Message';
-import { ALL_TOOLS, executeTool } from '../tools/tools';
-import { memoryService } from './memory.service';
+import { config } from '../../config/config';
+import { ChatMessage, Character as CharacterType } from '../../types';
+import { Message } from '../../models/Message';
+import { ALL_TOOLS, executeTool } from '../../tools/tools';
+import { MemoryService } from '../memory.service';
+import { ImageProcessor } from './image.processor';
+import { ToolExecutor } from './tool.executor';
 
 /**
  * OpenAI-compatible message types
@@ -24,29 +26,35 @@ interface AiMessage {
   name?: string;
 }
 
-export class AiService {
+export class ChatService {
+  private toolExecutor?: ToolExecutor;
+
+  constructor(
+    private memoryService: MemoryService,
+    private imageProcessor: ImageProcessor,
+    toolExecutor?: ToolExecutor
+  ) {
+    this.toolExecutor = toolExecutor;
+  }
+
   /**
    * Compact conversation summary and memory extraction
    */
   async summarizeIfNeeded(characterId: number, userId: number, logger?: any): Promise<void> {
     const history = Message.getHistory(characterId, userId);
-    // We use the limit from the config
     if (history.length <= config.maxHistoryMessages) return;
 
-    // We take the first half of the messages for compression and memory extraction
     const countToSummarize = Math.floor(config.maxHistoryMessages / 2);
     const messagesToSummarize = history.slice(0, countToSummarize);
     const idsToDelete = messagesToSummarize.filter(m => m.id).map(m => m.id!);
 
-    // We extract facts from the messages before deleting
     await this.extractFacts(messagesToSummarize, characterId, userId, logger);
 
     try {
-      // We delete the old messages
       Message.deleteBatch(idsToDelete);
-      logger?.info({ count: idsToDelete.length }, '[AI SERVICE] Old history cleaned up and moved to vector memory');
+      logger?.info({ count: idsToDelete.length }, '[CHAT SERVICE] Old history cleaned up and moved to vector memory');
     } catch (e) {
-      logger?.error({ error: e }, '[AI SERVICE] History cleanup failed');
+      logger?.error({ error: e }, '[CHAT SERVICE] History cleanup failed');
     }
   }
 
@@ -76,15 +84,15 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       if (content && content.toUpperCase().indexOf('NONE') === -1) {
         const facts = content.split('\n')
           .map((f: string) => f.replace(/^[-*]\s*/, '').trim())
-          .filter((f: string) => f.length > 5); // Removed the colon requirement
+          .filter((f: string) => f.length > 5);
 
         for (const fact of facts) {
-          await memoryService.addMemory(userId, characterId, fact, logger);
+          await this.memoryService.addMemory(userId, characterId, fact, logger);
         }
-        logger?.info({ count: facts.length }, '[AI SERVICE] Facts extracted to memory');
+        logger?.info({ count: facts.length }, '[CHAT SERVICE] Facts extracted to memory');
       }
     } catch (e) {
-      logger?.error({ error: e }, '[AI SERVICE] Fact extraction failed');
+      logger?.error({ error: e }, '[CHAT SERVICE] Fact extraction failed');
     }
   }
 
@@ -92,37 +100,15 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
    * Check if current user message should be processed for memory immediately
    */
   async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
-    // Регулярка ловит "запомни", "remember" в начале строки с любым разделителем (: - — или просто пробел)
-    const memoryRegex = /^(запомни|запоминай|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
+    const memoryRegex = /^(remember|save|store)\s*[:\-\s]\s*(.+)/i;
     const match = message.match(memoryRegex);
     
     if (match) {
       const fact = match[2].trim();
       if (fact.length > 2) {
-        logger?.info({ fact }, '[AI SERVICE] Saving explicit fact directly');
-        await memoryService.addMemory(userId, characterId, fact, logger);
+        logger?.info({ fact }, '[CHAT SERVICE] Saving explicit fact directly');
+        await this.memoryService.addMemory(userId, characterId, fact, logger);
       }
-    }
-  }
-
-  /**
-   * Process and resize incoming images
-   */
-  async processImage(base64: string, logger?: any): Promise<string> {
-    try {
-      const matches = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      const data = matches ? matches[2] : base64;
-      const imgBuffer = Buffer.from(data, 'base64');
-
-      const resized = await sharp(imgBuffer)
-        .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-
-      return `data:image/jpeg;base64,${resized.toString('base64')}`;
-    } catch (err: any) {
-      logger?.error({ error: err.message }, '[AI SERVICE] Image processing error');
-      throw new Error('Image processing failed');
     }
   }
 
@@ -133,7 +119,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     if (!query) return sysPrompt;
 
     try {
-      const memories = await memoryService.searchMemories(userId, characterId, query, 5, logger);
+      const memories = await this.memoryService.searchMemories(userId, characterId, query, 5, logger);
       if (memories.length > 0) {
         const contextMemory = memories.map(m => `- ${m.content}`).join('\n');
         const memoryBlock = `\n\n## YOUR LONG-TERM MEMORIES (USE WHEN NEEDED):\n${contextMemory}\n\nUse these memories if the user asks you about them or if you remember them.`;
@@ -142,14 +128,14 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
           count: memories.length, 
           query,
           memories: memories.map(m => m.content)
-        }, '[AI SERVICE] RAG Context injected into prompt');
+        }, '[CHAT SERVICE] RAG Context injected into prompt');
         
         return sysPrompt + memoryBlock;
       } else {
-        logger?.info({ query }, '[AI SERVICE] No relevant memories found');
+        logger?.info({ query }, '[CHAT SERVICE] No relevant memories found');
       }
     } catch (err) {
-      logger?.error({ error: err }, '[AI SERVICE] RAG Search failed');
+      logger?.error({ error: err }, '[CHAT SERVICE] RAG Search failed');
     }
 
     return sysPrompt;
@@ -166,9 +152,6 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
 
     // RAG: Search for relevant memories
     if (userId) {
-      // Собираем контекст из последних сообщений для более точного поиска в памяти (RAG)
-      // Если последнее сообщение слишком короткое (например "Да", "Ок"), 
-      // контекст из предыдущих реплик поможет найти нужные воспоминания.
       const lastMessages = history.slice(-3);
       const contextQuery = lastMessages
         .filter(m => typeof m.content === 'string')
@@ -195,14 +178,13 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       if (msg.tool_calls) m.tool_calls = msg.tool_calls;
       if (msg.name) m.name = msg.name;
 
-      // logger?.info({ message: m }, '[AI SERVICE] AI Message');
       aiMessages.push(m);
     }
 
     if (imageBase64 && aiMessages.length > 0) {
       const last = aiMessages[aiMessages.length - 1];
       if (last.role === 'user' && typeof last.content === 'string') {
-        const img = await this.processImage(imageBase64, logger);
+        const img = await this.imageProcessor.processImage(imageBase64, logger);
         last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: img } }];
       }
     }
@@ -214,12 +196,12 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         if (em.tool_calls) cleanExtra.tool_calls = em.tool_calls;
         if (em.name) cleanExtra.name = em.name;
 
-        logger?.info({ message: cleanExtra }, '[AI SERVICE] Extra Message');
+        logger?.info({ message: cleanExtra }, '[CHAT SERVICE] Extra Message');
         aiMessages.push(cleanExtra);
       }
     }
 
-    logger?.info({ messages: aiMessages }, '[AI SERVICE] AI Request Messages');
+    logger?.info({ messages: aiMessages }, '[CHAT SERVICE] AI Request Messages');
     const payload: any = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
@@ -256,7 +238,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         } catch (r) { errorData = '[Stream error]'; }
       }
       const msg = errorData?.error?.message || errorData?.message || err.message;
-      logger?.error({ status: err.response?.status, error: msg }, '[AI SERVICE] API Failure');
+      logger?.error({ status: err.response?.status, error: msg }, '[CHAT SERVICE] API Failure');
       throw new Error(`AI API Failure (${err.response?.status}): ${msg}`);
     }
   }
@@ -285,15 +267,15 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       
       // Start background tasks for memory extraction and history cleanup
       this.processImmediateMemory(message, character.id, userId, logger).catch(err => {
-        logger?.error(err, '[AI SERVICE] Immediate memory extraction failed');
+        logger?.error(err, '[CHAT SERVICE] Immediate memory extraction failed');
       });
 
       this.summarizeIfNeeded(character.id, userId, logger).catch(err => {
-        logger?.error(err, '[AI SERVICE] Background summarization failed');
+        logger?.error(err, '[CHAT SERVICE] Background summarization failed');
       });
     }
 
-    // 3. Получаем актуальную историю для нейросети
+    // 3. Get current history for AI
     const history = Message.getHistory(character.id, userId);
 
     const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName, undefined, userId);
@@ -325,8 +307,8 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
                 if (tc.function?.arguments) pendingToolCalls[idx].args += tc.function.arguments;
               }
             }
-          } catch {
-            logger?.error('[AI SERVICE] Error parsing SSE event', event);
+          } catch (e) {
+            logger?.error('[CHAT SERVICE] Error parsing SSE event', event);
           }
         }
       });
@@ -346,7 +328,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       }
 
       if (character.reasoning === 1 && reasoningText && logger) {
-        logger.info({ text: reasoningText }, '[AI SERVICE] Reasoning Pass 1');
+        logger.info({ text: reasoningText }, '[CHAT SERVICE] Reasoning Pass 1');
       }
     } else {
       const resData = response.data.choices?.[0]?.message;
@@ -356,7 +338,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         if (character.reasoning === 1) {
           const pass1Reason = resData.reasoning_content || resData.reasoning;
           if (pass1Reason) {
-            if (logger) logger.info({ text: pass1Reason }, '[AI SERVICE] Reasoning Pass 1');
+            if (logger) logger.info({ text: pass1Reason }, '[CHAT SERVICE] Reasoning Pass 1');
             yield { reasoning: pass1Reason };
           }
         }
@@ -368,132 +350,25 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       }
     }
 
-    if (pendingToolCalls.length > 0) {
-      const toolResultsRaw = await Promise.all(pendingToolCalls.map(async tc => ({
-        id: tc.id,
-        name: tc.name,
-        result: await executeTool(tc.name, tc.args, logger)
-      })));
-
-      const toolResultsForAi: any[] = [];
-
-      // Preservation of the text before image for triggerMsg
-      const preImageText = fullReply;
-
-      const assistantMsg: AiMessage = {
-        role: 'assistant',
-        content: preImageText || null, // Send back what was already written
-        tool_calls: pendingToolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.args }
-        }))
-      };
-
-      // Сохраняем промежуточный ответ ассистента с тулл-коллами
-      if (userId) {
-        Message.add(character.id, userId, {
-          role: 'assistant',
-          content: assistantMsg.content as any,
-          tool_calls: assistantMsg.tool_calls
-        } as any);
-      }
-
-      // Handle special injection and construct AI results
-      for (const tr of toolResultsRaw) {
-        let toolContent = tr.result;
-        if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
-          const url = tr.result;
-          // Check if AI already included this image in the response
-          if (!fullReply.includes(url)) {
-            const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
-            yield { reply: markdown };
-            fullReply += markdown;
-          }
-          toolContent = `Image: ${url} (Displayed to user)`;
-        }
-
-        const toolMsg = {
-          role: 'tool' as const,
-          tool_call_id: tr.id,
-          content: toolContent,
-          name: tr.name
-        };
-
-        toolResultsForAi.push(toolMsg);
-
-        // Сохраняем результат инструмента
-        if (userId) {
-          Message.add(character.id, userId, toolMsg as any);
-        }
-      }
-
-      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
-      let prevLen = 0;
-      let prevReasoningLen = 0;
-      const secondStartLen = fullReply.length;
-      let secondPartReply = '';
-      let secondReasoningText = '';
-
-      if (config.aiStreaming) {
-        const pParser = createParser({
-          onEvent: (event) => {
-            if (event.data === '[DONE]') return;
-            try {
-              const data = JSON.parse(event.data);
-              if (data.usage) usage = data.usage;
-              const text = data.choices?.[0]?.delta?.content;
-              const reason = data.choices?.[0]?.delta?.reasoning_content || data.choices?.[0]?.delta?.reasoning;
-              if (text) {
-                fullReply += text;
-                secondPartReply += text;
-              }
-              if (character.reasoning === 1 && reason) secondReasoningText += reason;
-            } catch (e) {
-              logger?.error({ error: e, event }, '[AI SERVICE] Error parsing second SSE event');
-            }
-          }
-        });
-        for await (const chunk of secondRes.data) {
-          pParser.feed(chunk.toString());
-          if (fullReply.length > (secondStartLen + prevLen)) {
-            yield { reply: fullReply.slice(secondStartLen + prevLen) };
-            prevLen = fullReply.length - secondStartLen;
-          }
-          if (secondReasoningText.length > prevReasoningLen) {
-            yield { reasoning: secondReasoningText.slice(prevReasoningLen) };
-            prevReasoningLen = secondReasoningText.length;
-          }
-        }
-        if (character.reasoning === 1 && secondReasoningText && logger) {
-          logger.info({ text: secondReasoningText }, '[AI SERVICE] Reasoning Pass 2');
-        }
-      } else {
-        const more = secondRes.data.choices?.[0]?.message?.content || '';
-        if (character.reasoning === 1) {
-          const moreReason = secondRes.data.choices?.[0]?.message?.reasoning_content || secondRes.data.choices?.[0]?.message?.reasoning || '';
-          if (moreReason) yield { reasoning: moreReason };
-        }
-        usage = secondRes.data.usage;
-        fullReply += more;
-        secondPartReply = more;
-        yield { reply: more };
-      }
-
-      // Сохраняем финальный ответ с изображениями в markdown
-      if (userId && fullReply) {
-        // fullReply содержит текст + markdown для изображений
-        Message.add(character.id, userId, { role: 'assistant', content: fullReply });
-      }
-
-      // Больше не возвращаем fullReply, так как он сохранен здесь
-      yield { done: true };
+    if (pendingToolCalls.length > 0 && this.toolExecutor) {
+      yield* this.toolExecutor.handleToolCalls(
+        pendingToolCalls,
+        fullReply,
+        character,
+        userId,
+        history,
+        message,
+        imageBase64,
+        logger,
+        userName,
+        usage
+      );
     } else {
       if (!config.aiStreaming && fullReply) {
         yield { reply: fullReply };
       }
       
-      // Сохраняем финальный ответ для не-тулл случая
+      // Save final response for non-tool case
       if (userId && fullReply) {
         Message.add(character.id, userId, { role: 'assistant', content: fullReply });
       }
@@ -506,9 +381,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         usage,
         fullReplyLength: fullReply.length,
         model: config.aiDefaultModel
-      }, '[AI SERVICE] Final Response Statistics');
+      }, '[CHAT SERVICE] Final Response Statistics');
     }
   }
 }
-
-export const aiService = new AiService();

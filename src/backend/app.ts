@@ -69,7 +69,8 @@ export async function createApp() {
     cookie: {
       secure: false,
       sameSite: 'lax',
-      path: '/'
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     }
   });
 

@@ -13,7 +13,31 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const { message, character_id, image } = request.body as ChatRequestPayload;
     const userId = request.session.user!.id;
     request.log.info({ character_id, userId, messageLength: message?.length }, '[CHAT ROUTE] Incoming chat request');
-    if (!character_id) return reply.code(400).send({ error: 'ID required' });
+    
+    // Validation checks
+    if (!character_id) {
+      return reply.code(400).send({ error: 'Character ID is required' });
+    }
+    
+    if (!Number.isInteger(Number(character_id)) || Number(character_id) <= 0) {
+      return reply.code(400).send({ error: 'Invalid character ID format' });
+    }
+    
+    if (message && (typeof message !== 'string' || message.trim().length === 0)) {
+      return reply.code(400).send({ error: 'Message cannot be empty' });
+    }
+    
+    if (message && message.length > 10000) {
+      return reply.code(400).send({ error: 'Message too long (max 10000 characters)' });
+    }
+    
+    if (image && typeof image !== 'string') {
+      return reply.code(400).send({ error: 'Invalid image format' });
+    }
+    
+    if (image && !image.startsWith('data:image/')) {
+      return reply.code(400).send({ error: 'Invalid image format - must be base64 data URL' });
+    }
 
     const activeCharacter = Character.findById(character_id);
     if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
@@ -49,7 +73,14 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
   server.get('/api/history', async (request) => {
     const { character_id } = request.query as { character_id?: string };
     const userId = request.session.user!.id;
-    if (!character_id) return [];
+    
+    if (!character_id) {
+      return [];
+    }
+    
+    if (!Number.isInteger(Number(character_id)) || Number(character_id) <= 0) {
+      return [];
+    }
 
     const history = Message.getHistory(parseInt(character_id), userId);
 
@@ -63,9 +94,15 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     });
   });
 
-  server.delete('/api/history/:id', async (request) => {
+  server.delete('/api/history/:id', async (request, reply) => {
     const userId = request.session.user!.id;
-    Message.deleteHistory(parseInt((request.params as any).id), userId);
+    const characterId = (request.params as any).id;
+    
+    if (!characterId || !Number.isInteger(Number(characterId)) || Number(characterId) <= 0) {
+      return reply.code(400).send({ error: 'Invalid character ID' });
+    }
+    
+    Message.deleteHistory(parseInt(characterId), userId);
     return { success: true };
   });
 

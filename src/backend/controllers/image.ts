@@ -12,8 +12,8 @@ export async function imageRoutes(fastify: FastifyInstance) {
             const body = request.body as { 
                 prompt: string; 
                 aspect_ratio?: string; 
-                steps?: number; 
-                guidance?: number;
+                steps?: number | string; 
+                guidance?: number | string;
                 provider?: 'xai' | 'together';
             };
 
@@ -21,10 +21,14 @@ export async function imageRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ success: false, error: 'Prompt is required' });
             }
 
+            // Convert string parameters to numbers for Together API
+            const steps = body.steps ? parseInt(String(body.steps)) : undefined;
+            const guidance = body.guidance ? parseFloat(String(body.guidance)) : undefined;
+
             const result = await imageService.generate(body.prompt, {
                 aspect_ratio: body.aspect_ratio,
-                steps: body.steps,
-                guidance: body.guidance
+                steps: steps,
+                guidance: guidance
             }, body.provider);
 
             if (!result.success) {
@@ -45,8 +49,8 @@ export async function imageRoutes(fastify: FastifyInstance) {
                 prompt: string; 
                 reference_images: string[];
                 aspect_ratio?: string; 
-                steps?: number; 
-                guidance?: number;
+                steps?: number | string; 
+                guidance?: number | string;
                 provider?: 'xai' | 'together';
             };
 
@@ -58,11 +62,15 @@ export async function imageRoutes(fastify: FastifyInstance) {
                 return reply.code(400).send({ success: false, error: 'At least one reference image is required' });
             }
 
+            // Convert string parameters to numbers for Together API
+            const steps = body.steps ? parseInt(String(body.steps)) : undefined;
+            const guidance = body.guidance ? parseFloat(String(body.guidance)) : undefined;
+
             const result = await imageService.editImage(body.prompt, {
                 reference_images: body.reference_images,
                 aspect_ratio: body.aspect_ratio,
-                steps: body.steps,
-                guidance: body.guidance
+                steps: steps,
+                guidance: guidance
             }, body.provider);
 
             if (!result.success) {
@@ -105,6 +113,17 @@ export async function imageRoutes(fastify: FastifyInstance) {
         } catch (error: any) {
             fastify.log.error(error);
             return reply.code(500).send({ success: false, error: 'Internal server error while deleting image' });
+        }
+    });
+
+    // Get list of all generated images
+    fastify.get('/api/images/list', async (request, reply) => {
+        try {
+            const result = await imageService.listImages();
+            return reply.code(200).send(result);
+        } catch (error: any) {
+            fastify.log.error(error);
+            return reply.code(500).send({ success: false, error: 'Internal server error while listing images' });
         }
     });
 }

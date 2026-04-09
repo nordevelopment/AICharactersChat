@@ -15,4 +15,9 @@ export interface IImageProvider {
      * Удаление локального файла
      */
     deleteImage(filename: string): Promise<DeleteResult>;
+    
+    /**
+     * List all generated images
+     */
+    listImages(): Promise<{ success: boolean; images: any[]; error?: string }>;
 }
