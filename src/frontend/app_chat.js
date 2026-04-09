@@ -114,39 +114,47 @@ document.addEventListener('alpine:init', () => {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullReply = '';
+                let buffer = '';
 
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    // Последняя строка может быть неполной, оставляем её в буфере
+                    buffer = lines.pop();
+
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(line.substring(6));
-                                if (data.done) {
-                                    let msgContent = fullReply;
-                                    if (this.typingReasoning) {
-                                        msgContent = `<details class="reasoning-details mb-2"><summary class="text-muted small" style="cursor:pointer">Thought Process</summary>\n<div class="content text-muted small mt-1" style="border-left: 2px solid #555; padding-left: 8px;">\n${this.typingReasoning}\n</div>\n</details>\n\n` + msgContent;
-                                    }
-                                    this.messages.push({ role: 'assistant', content: msgContent });
-                                    this.isTyping = false;
-                                    this.typingMessage = '';
-                                    this.typingReasoning = '';
-                                    this.scrollToBottom();
-                                    return;
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                        try {
+                            const data = JSON.parse(trimmed.substring(6));
+                            if (data.done) {
+                                let msgContent = fullReply;
+                                if (this.typingReasoning) {
+                                    msgContent = `<details class="reasoning-details mb-2"><summary class="text-muted small" style="cursor:pointer">Thought Process</summary>\n<div class="content text-muted small mt-1" style="border-left: 2px solid #555; padding-left: 8px;">\n${this.typingReasoning}\n</div>\n</details>\n\n` + msgContent;
                                 }
-                                if (data.reply) {
-                                    fullReply += data.reply;
-                                    this.typingMessage = fullReply;
-                                    this.scrollToBottom();
-                                }
-                                if (data.reasoning) {
-                                    this.typingReasoning += data.reasoning;
-                                    this.scrollToBottom();
-                                }
-                            } catch (e) { }
+                                this.messages.push({ role: 'assistant', content: msgContent });
+                                this.isTyping = false;
+                                this.typingMessage = '';
+                                this.typingReasoning = '';
+                                this.scrollToBottom();
+                                return;
+                            }
+                            if (data.reply) {
+                                fullReply += data.reply;
+                                this.typingMessage = fullReply;
+                                this.scrollToBottom();
+                            }
+                            if (data.reasoning) {
+                                this.typingReasoning += data.reasoning;
+                                this.scrollToBottom();
+                            }
+                        } catch (e) {
+                            console.warn("Failed to parse SSE line:", trimmed, e);
                         }
                     }
                 }

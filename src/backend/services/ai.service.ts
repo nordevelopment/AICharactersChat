@@ -166,8 +166,19 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
 
     // RAG: Search for relevant memories
     if (userId) {
-      const query = newUserMessage || (history.length > 0 && typeof history[history.length - 1].content === 'string' ? history[history.length - 1].content : null);
-      sys = await this.injectMemoryContext(sys, character.id, userId, query as string, logger);
+      // Собираем контекст из последних сообщений для более точного поиска в памяти (RAG)
+      // Если последнее сообщение слишком короткое (например "Да", "Ок"), 
+      // контекст из предыдущих реплик поможет найти нужные воспоминания.
+      const lastMessages = history.slice(-3);
+      const contextQuery = lastMessages
+        .filter(m => typeof m.content === 'string')
+        .map(m => m.content)
+        .join('\n');
+      
+      const query = newUserMessage || contextQuery;
+      if (query) {
+        sys = await this.injectMemoryContext(sys, character.id, userId, query, logger);
+      }
     }
 
     const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
@@ -255,13 +266,35 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
    */
   async *streamChatResponse(
     character: CharacterType,
-    history: ChatMessage[],
+    userId: number,
     message?: string,
     imageBase64?: string,
     logger?: any,
-    userName?: string,
-    userId?: number
+    userName?: string
   ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; fullReply?: string }> {
+
+    // 1. Check greeting message (if first message)
+    const historyInDB = Message.getHistory(character.id, userId);
+    if (historyInDB.length === 0 && character.first_message) {
+      Message.add(character.id, userId, { role: 'assistant', content: character.first_message }, 1);
+    }
+
+    // 2. Save user message to database (if it exists)
+    if (message) {
+      Message.add(character.id, userId, { role: 'user', content: message });
+      
+      // Start background tasks for memory extraction and history cleanup
+      this.processImmediateMemory(message, character.id, userId, logger).catch(err => {
+        logger?.error(err, '[AI SERVICE] Immediate memory extraction failed');
+      });
+
+      this.summarizeIfNeeded(character.id, userId, logger).catch(err => {
+        logger?.error(err, '[AI SERVICE] Background summarization failed');
+      });
+    }
+
+    // 3. Получаем актуальную историю для нейросети
+    const history = Message.getHistory(character.id, userId);
 
     const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName, undefined, userId);
     let fullReply = '';
@@ -442,13 +475,19 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         Message.add(character.id, userId, { role: 'assistant', content: fullReply });
       }
 
-      // Возвращаем пустой fullReply, чтобы chat.routes.ts не сохранял дубликат
-      yield { done: true, fullReply: '' };
+      // Больше не возвращаем fullReply, так как он сохранен здесь
+      yield { done: true };
     } else {
       if (!config.aiStreaming && fullReply) {
         yield { reply: fullReply };
       }
-      yield { done: true, fullReply };
+      
+      // Сохраняем финальный ответ для не-тулл случая
+      if (userId && fullReply) {
+        Message.add(character.id, userId, { role: 'assistant', content: fullReply });
+      }
+
+      yield { done: true };
     }
 
     if (usage && logger) {
