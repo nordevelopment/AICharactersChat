@@ -93,7 +93,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
    */
   async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
     // Регулярка ловит "запомни", "remember" в начале строки с любым разделителем (: - — или просто пробел)
-    const memoryRegex = /^(запомни|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
+    const memoryRegex = /^(запомни|запоминай|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
     const match = message.match(memoryRegex);
     
     if (match) {
