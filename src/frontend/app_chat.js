@@ -219,6 +219,16 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        async clearMemory() {
+            if (!this.currentCharacter || !confirm('Clear memory for this character? This cannot be undone.')) return;
+            try {
+                const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                await fetch(`${apiBase}/memory/${this.currentCharacter.id}`, { method: 'DELETE' });
+            } catch (err) {
+                console.error("Clear memory failed:", err);
+            }
+        },
+
         renderMarkdown(content) {
             return DOMPurify.sanitize(marked.parse(content), { ADD_ATTR: ['target'] });
         },

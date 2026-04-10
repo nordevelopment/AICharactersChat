@@ -3,6 +3,7 @@ import { Character as CharacterType, ChatRequestPayload } from '../types';
 import { Character } from '../models/Character';
 import { Message } from '../models/Message';
 import { aiService } from '../services/ai.service';
+import { memoryService } from '../services/memory.service';
 import { config } from '../config/config';
 
 export async function chatRoutes(server: FastifyInstance, options?: { logger?: any }) {
@@ -109,6 +110,19 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
   server.delete('/api/history/all', async (request) => {
     const userId = request.session.user!.id;
     Message.deleteAll(userId);
+    return { success: true };
+  });
+
+  // Delete memories for specific character
+  server.delete('/api/memory/:characterId', async (request, reply) => {
+    const userId = request.session.user!.id;
+    const characterId = (request.params as any).characterId;
+    
+    if (!characterId || !Number.isInteger(Number(characterId)) || Number(characterId) <= 0) {
+      return reply.code(400).send({ error: 'Invalid character ID' });
+    }
+    
+    await memoryService.deleteMemories(userId, parseInt(characterId), request.log);
     return { success: true };
   });
 }

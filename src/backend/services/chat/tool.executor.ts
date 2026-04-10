@@ -3,7 +3,7 @@ import { config } from '../../config/config';
 import { ChatMessage, Character as CharacterType } from '../../types';
 import { Message } from '../../models/Message';
 import { executeTool } from '../../tools/tools';
-import { ChatService } from './chat.service';
+import { aiService } from '../ai.service';
 
 interface AiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -14,8 +14,6 @@ interface AiMessage {
 }
 
 export class ToolExecutor {
-  constructor(private chatService: ChatService) {}
-
   /**
    * Handle tool calls and continue conversation
    */
@@ -35,7 +33,7 @@ export class ToolExecutor {
     const toolResultsRaw = await Promise.all(pendingToolCalls.map(async tc => ({
       id: tc.id,
       name: tc.name,
-      result: await executeTool(tc.name, tc.args, logger)
+      result: await executeTool(tc.name, tc.args, logger, { userId, characterId: character.id })
     })));
 
     const toolResultsForAi: any[] = [];
@@ -89,7 +87,7 @@ export class ToolExecutor {
       }
     }
 
-    const secondRes = await this.chatService.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
+    const secondRes = await aiService.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
     let prevLen = 0;
     let prevReasoningLen = 0;
     const secondStartLen = fullReply.length;

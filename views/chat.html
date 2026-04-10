@@ -106,6 +106,13 @@
                             d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z" />
                     </svg>
                 </button>
+                <button @click="clearMemory()" class="btn btn-sm btn-outline-warning" title="Clear Memory">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path d="M8 16s-1 0-1-1 1-4 5-4 5 3 4 5 4 1-1 1-1H8z"/>
+                        <path d="M8 1A7 7 0 1 0 8 15a7 7 0 0 0 0-14zm0 1A6 6 0 1 1 8 15a6 6 0 0 1 0-12z"/>
+                    </svg>
+                </button>
             </div>
 
             <div id="chat-window" x-ref="chatWindow">
@@ -207,7 +214,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="public/app_userprofile.js?v=3"></script>
-    <script src="public/app_chat.js?v=12"></script>
+    <script src="public/app_chat.js?v=13"></script>
 </body>
 
 </html>

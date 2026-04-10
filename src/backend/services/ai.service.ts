@@ -89,23 +89,6 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   }
 
   /**
-   * Check if current user message should be processed for memory immediately
-   */
-  async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
-    // Регулярка ловит "запомни", "remember" в начале строки с любым разделителем (: - — или просто пробел)
-    const memoryRegex = /^(запомни|запоминай|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
-    const match = message.match(memoryRegex);
-    
-    if (match) {
-      const fact = match[2].trim();
-      if (fact.length > 2) {
-        logger?.info({ fact }, '[AI SERVICE] Saving explicit fact directly');
-        await memoryService.addMemory(userId, characterId, fact, logger);
-      }
-    }
-  }
-
-  /**
    * Process and resize incoming images
    */
   async processImage(base64: string, logger?: any): Promise<string> {
@@ -127,35 +110,6 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   }
 
   /**
-   * Inject relevant long-term memories into the system prompt (RAG)
-   */
-  async injectMemoryContext(sysPrompt: string, characterId: number, userId: number, query?: string, logger?: any): Promise<string> {
-    if (!query) return sysPrompt;
-
-    try {
-      const memories = await memoryService.searchMemories(userId, characterId, query, 5, logger);
-      if (memories.length > 0) {
-        const contextMemory = memories.map(m => `- ${m.content}`).join('\n');
-        const memoryBlock = `\n\n## YOUR LONG-TERM MEMORIES (USE WHEN NEEDED):\n${contextMemory}\n\nUse these memories if the user asks you about them or if you remember them.`;
-        
-        logger?.info({ 
-          count: memories.length, 
-          query,
-          memories: memories.map(m => m.content)
-        }, '[AI SERVICE] RAG Context injected into prompt');
-        
-        return sysPrompt + memoryBlock;
-      } else {
-        logger?.info({ query }, '[AI SERVICE] No relevant memories found');
-      }
-    } catch (err) {
-      logger?.error({ error: err }, '[AI SERVICE] RAG Search failed');
-    }
-
-    return sysPrompt;
-  }
-
-  /**
    * Core request to AI API
    */
   async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[], userId?: number) {
@@ -164,22 +118,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     sys = sys.replace(/{{char}}/g, character.name);
     if (character.scenario) sys += `\nScenario: ${character.scenario}`;
 
-    // RAG: Search for relevant memories
-    if (userId) {
-      // Собираем контекст из последних сообщений для более точного поиска в памяти (RAG)
-      // Если последнее сообщение слишком короткое (например "Да", "Ок"), 
-      // контекст из предыдущих реплик поможет найти нужные воспоминания.
-      const lastMessages = history.slice(-3);
-      const contextQuery = lastMessages
-        .filter(m => typeof m.content === 'string')
-        .map(m => m.content)
-        .join('\n');
-      
-      const query = newUserMessage || contextQuery;
-      if (query) {
-        sys = await this.injectMemoryContext(sys, character.id, userId, query, logger);
-      }
-    }
+    // AI uses save_memory and get_memory tools autonomously - no RAG injection needed
 
     const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
     const recentHistory = history.slice(-config.maxHistoryMessages);
@@ -283,12 +222,8 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     if (message) {
       Message.add(character.id, userId, { role: 'user', content: message });
       
-      // Start background tasks for memory extraction and history cleanup
-      this.processImmediateMemory(message, character.id, userId, logger).catch(err => {
-        logger?.error(err, '[AI SERVICE] Immediate memory extraction failed');
-      });
-
-      this.summarizeIfNeeded(character.id, userId, logger).catch(err => {
+      // Start background tasks for history cleanup and memory extraction
+      this.summarizeIfNeeded(character.id, userId, logger).catch((err: any) => {
         logger?.error(err, '[AI SERVICE] Background summarization failed');
       });
     }
@@ -372,7 +307,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       const toolResultsRaw = await Promise.all(pendingToolCalls.map(async tc => ({
         id: tc.id,
         name: tc.name,
-        result: await executeTool(tc.name, tc.args, logger)
+        result: await executeTool(tc.name, tc.args, logger, { userId, characterId: character.id })
       })));
 
       const toolResultsForAi: any[] = [];

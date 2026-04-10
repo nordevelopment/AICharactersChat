@@ -1,14 +1,20 @@
 /** Tools for AI
  * Tools configuration
  * To enable/disable tools, change the enabled flag
-*/
+ */
 
 import fs from 'fs/promises';
 import path from 'path';
 import { ImageService } from '../services/image';
 import { ImageProviderType } from '../services/image/interfaces/types';
+import { memoryService } from '../services/memory.service';
 
-type ToolArgs = Record<string, string>;
+type ToolArgs = Record<string, string | number | undefined>;
+
+interface ToolContext {
+    userId: number;
+    characterId: number;
+}
 
 interface ToolParameter {
     type: string;
@@ -33,10 +39,10 @@ interface ToolDefinition {
 interface Tool {
     enabled: boolean;
     definition: ToolDefinition;
-    handler: (args: ToolArgs, logger?: any) => Promise<string>;
+    handler: (args: ToolArgs, logger?: any, context?: ToolContext) => Promise<string>;
 }
 
-// ─── Shared resources ───────────────────────────────────────────────────────
+// Shared resources
 
 const FILES_DIR = path.join(process.cwd(), 'storage', 'sandbox');
 const imageService = new ImageService();
@@ -45,22 +51,19 @@ async function ensureFilesDir(): Promise<void> {
     await fs.mkdir(FILES_DIR, { recursive: true });
 }
 
-// ─── Handlers ───────────────────────────────────────────────────────────────
+// Handlers
 
 async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: any): Promise<string> {
-    // Strict filename validation
-    const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    const safeFilename = String(filename || '').replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename || safeFilename.length === 0) {
       return 'Error: invalid filename provided.';
     }
     
-    // Prevent path traversal and reserved names
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
     if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
       return 'Error: invalid or unsafe filename.';
     }
     
-    // Limit filename length
     if (safeFilename.length > 255) {
       return 'Error: filename too long (max 255 characters).';
     }
@@ -68,11 +71,11 @@ async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: an
     const targetPath = path.join(FILES_DIR, safeFilename);
     if (!targetPath.startsWith(FILES_DIR)) return 'Error: invalid file path.';
 
-    let finalContent = content
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
+    let finalContent = String(content || '')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/&/g, '&')
+        .replace(/"/g, '"')
         .replace(/&#39;/g, "'");
 
     finalContent = finalContent.replace(/^```[a-z]*\r?\n/i, '').replace(/\r?\n```$/g, '');
@@ -85,19 +88,16 @@ async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: an
 }
 
 async function handleReadTextFile({ filename }: ToolArgs, logger?: any): Promise<string> {
-    // Strict filename validation
-    const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    const safeFilename = String(filename || '').replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename || safeFilename.length === 0) {
       return 'Error: invalid filename provided.';
     }
     
-    // Prevent path traversal and reserved names
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
     if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
       return 'Error: invalid or unsafe filename.';
     }
     
-    // Limit filename length
     if (safeFilename.length > 255) {
       return 'Error: filename too long (max 255 characters).';
     }
@@ -120,7 +120,7 @@ async function handleGenerateImage({ prompt, aspect_ratio, provider }: ToolArgs,
     if (!prompt) return 'Error: prompt is required';
 
     try {
-        const result = await imageService.generate(prompt, { aspect_ratio: aspect_ratio || '1:1' }, provider as ImageProviderType);
+        const result = await imageService.generate(String(prompt), { aspect_ratio: String(aspect_ratio || '1:1') }, provider as ImageProviderType);
         if (!result.success) {
             logger?.error({ prompt, error: result.error }, '[TOOLS] [generate_image] Generation failed');
             return `Error creating image: ${result.error}`;
@@ -133,8 +133,52 @@ async function handleGenerateImage({ prompt, aspect_ratio, provider }: ToolArgs,
     }
 }
 
+// Memory tool handlers
+async function handleSaveMemory({ content }: ToolArgs, logger?: any, context?: ToolContext): Promise<string> {
+    if (!context?.userId || !context?.characterId) {
+        return 'Error: missing user context for saving memory';
+    }
+    if (!content) return 'Error: content is required';
 
-// ─── Tools Registry ─────────────────────────────────────────────────────────
+    try {
+        await memoryService.addMemory(context.userId, context.characterId, String(content), logger);
+        logger?.info({ content }, '[TOOLS] [save_memory] Memory saved');
+        return `Memory saved successfully: "${String(content).substring(0, 50)}..."`;
+    } catch (error: any) {
+        logger?.error({ error: error.message }, '[TOOLS] [save_memory] Failed');
+        return `Error saving memory: ${error.message}`;
+    }
+}
+
+async function handleGetMemory({ query, limit }: ToolArgs, logger?: any, context?: ToolContext): Promise<string> {
+    if (!context?.userId || !context?.characterId) {
+        return 'Error: missing user context for getting memory';
+    }
+    if (!query) return 'Error: query is required';
+
+    try {
+        const memories = await memoryService.searchMemories(
+            context.userId, 
+            context.characterId, 
+            String(query), 
+            Number(limit) || 5, 
+            logger
+        );
+        
+        if (memories.length === 0) {
+            return 'No memories found matching the query.';
+        }
+
+        const formatted = memories.map((m, i) => `${i + 1}. ${m.content} (relevance: ${(1 - m.distance).toFixed(2)})`).join('\n');
+        logger?.info({ query, count: memories.length }, '[TOOLS] [get_memory] Memories found');
+        return `Found ${memories.length} memories:\n${formatted}`;
+    } catch (error: any) {
+        logger?.error({ error: error.message }, '[TOOLS] [get_memory] Failed');
+        return `Error searching memory: ${error.message}`;
+    }
+}
+
+// Tools Registry
 const TOOLS: Record<string, Tool> = {
 
     create_text_file: {
@@ -196,13 +240,52 @@ const TOOLS: Record<string, Tool> = {
             },
         },
     },
+
+    save_memory: {
+        enabled: true,
+        handler: handleSaveMemory,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'save_memory',
+                description: 'Save info to long-term memory. Use input language.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        content: { type: 'string', description: 'Info to remember.' },
+                    },
+                    required: ['content'],
+                },
+            },
+        },
+    },
+
+    get_memory: {
+        enabled: true,
+        handler: handleGetMemory,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'get_memory',
+                description: 'Search memories. Use SAME language as input.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        query: { type: 'string', description: 'What to search for.' },
+                        limit: { type: 'number', description: 'Max results', default: 5 },
+                    },
+                    required: ['query'],
+                },
+            },
+        },
+    },
 };
 
 export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
     .filter(t => t.enabled)
     .map(t => t.definition);
 
-export async function executeTool(name: string, argsJson: string, logger?: any): Promise<string> {
+export async function executeTool(name: string, argsJson: string, logger?: any, context?: ToolContext): Promise<string> {
     const tool = TOOLS[name];
 
     if (!tool) {
@@ -219,7 +302,7 @@ export async function executeTool(name: string, argsJson: string, logger?: any):
         const args = JSON.parse(argsJson);
         logger?.info({ tool: name, args }, '[TOOLS] Starting execution');
 
-        const result = await tool.handler(args, logger);
+        const result = await tool.handler(args, logger, context);
 
         logger?.info({ tool: name, resultLength: result.length }, '[TOOLS] Execution finished');
         return result;

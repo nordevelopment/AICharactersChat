@@ -9,12 +9,84 @@ export interface MemorySearchResult {
 
 export class MemoryService {
     /**
+     * Validate embedding dimensions and migrate if needed
+     */
+    async validateAndMigrate(logger?: any): Promise<void> {
+        if (!config.aiEmbeddingModel) return;
+        
+        try {
+            // Получаем размерность текущей модели
+            const testEmbedding = await this.getEmbedding("dimension_check", logger);
+            const currentDim = testEmbedding.length;
+            
+            const db = getDB();
+            
+            // Получаем размерность таблицы из schema
+            const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE name='vec_character_memories'").get() as any;
+            let tableDim = 0;
+            
+            if (tableInfo?.sql) {
+                const match = tableInfo.sql.match(/float\[(\d+)\]/);
+                if (match) {
+                    tableDim = parseInt(match[1], 10);
+                }
+            }
+            
+            if (tableDim === 0) {
+                // Таблица не существует или не найдена - создаём
+                if (logger) {
+                    logger.info({ dimension: currentDim }, '[MEMORY SERVICE] Creating vector table');
+                } else {
+                    console.log(`[MEMORY SERVICE] Creating vector table with dimension ${currentDim}`);
+                }
+                db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS vec_character_memories USING vec0(embedding float[${currentDim}]);`);
+                return;
+            }
+            
+            if (tableDim !== currentDim) {
+                // Размерность не совпадает - пересоздаём таблицу и очищаем данные
+                const logMsg = `Dimension mismatch: table=${tableDim}, model=${currentDim}. Recreating table.`;
+                if (logger) {
+                    logger.warn({ tableDim, currentDim }, `[MEMORY SERVICE] ${logMsg}`);
+                } else {
+                    console.warn(`[MEMORY SERVICE] ⚠️  ${logMsg}`);
+                }
+                
+                // Удаляем старую таблицу и создаём новую
+                db.exec('DROP TABLE IF EXISTS vec_character_memories;');
+                db.exec(`CREATE VIRTUAL TABLE vec_character_memories USING vec0(embedding float[${currentDim}]);`);
+                
+                // Очищаем данные из основной таблицы
+                db.exec('DELETE FROM character_memories;');
+                
+                if (logger) {
+                    logger.info('[MEMORY SERVICE] Vector table recreated');
+                } else {
+                    console.log('[MEMORY SERVICE] ✅ Vector table recreated');
+                }
+            } else if (logger) {
+                logger.info({ dimension: currentDim }, '[MEMORY SERVICE] Embedding dimensions verified');
+            }
+        } catch (error: any) {
+            if (logger) {
+                logger.error({ error: error.message }, '[MEMORY SERVICE] Validation failed');
+            } else {
+                console.error('[MEMORY SERVICE] ❌ Validation failed:', error.message);
+            }
+        }
+    }
+
+    /**
      * Get embeddings from OpenRouter
      */
     async getEmbedding(text: string, logger?: any): Promise<number[]> {
+        if (!config.aiEmbeddingModel) {
+            throw new Error('AI_EMBEDDING_MODEL is not configured. MemoryService is disabled.');
+        }
+        
         try {
             const response = await axios.post(config.apiUrl.replace('/chat/completions', '/embeddings'), {
-                model: config.aiEmbeddingModel || 'qwen/qwen3-embedding-8b',
+                model: config.aiEmbeddingModel,
                 input: text,
                 encoding_format: 'float'
             }, {
@@ -76,6 +148,38 @@ export class MemoryService {
                 }, '[MEMORY SERVICE] Failed to add memory');
             } else {
                 console.error(`[MEMORY SERVICE] ❌ Failed to add memory: ${content}`, error);
+            }
+        }
+    }
+
+    /**
+     * Delete all memories for user and character
+     */
+    async deleteMemories(userId: number, characterId: number, logger?: any): Promise<void> {
+        const db = getDB();
+        try {
+            // Get memory IDs to delete from vector table
+            const memories = db.prepare('SELECT id FROM character_memories WHERE user_id = ? AND character_id = ?').all(userId, characterId) as any[];
+            
+            const transaction = db.transaction(() => {
+                // Delete from vector table
+                for (const m of memories) {
+                    db.prepare('DELETE FROM vec_character_memories WHERE rowid = ?').run(BigInt(m.id));
+                }
+                // Delete from main table
+                db.prepare('DELETE FROM character_memories WHERE user_id = ? AND character_id = ?').run(userId, characterId);
+            });
+            
+            transaction();
+            
+            if (logger) {
+                logger.info({ userId, characterId, count: memories.length }, '[MEMORY SERVICE] Memories deleted');
+            }
+        } catch (error: any) {
+            if (logger) {
+                logger.error({ error: error.message }, '[MEMORY SERVICE] Delete failed');
+            } else {
+                console.error('[MEMORY SERVICE] ❌ Delete failed:', error.message);
             }
         }
     }

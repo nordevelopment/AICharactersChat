@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import path from 'path';
+import path from 'path'
 dotenv.config();
 
 export const config = {
@@ -9,7 +9,7 @@ export const config = {
   apiKey: process.env.API_KEY || '',
 
   aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
-  aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || 'qwen/qwen3-embedding-4b',
+  aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || '',
 
   imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
   
@@ -18,14 +18,14 @@ export const config = {
   xaiImageModel: process.env.XAI_IMAGE_MODEL || 'grok-imagine-image',
 
   togetherApiKey: process.env.TOGETHER_API_KEY || '',
-  togetherApiUrl: process.env.TOGETHER_IMAGE_API_URL || 'https://api.together.xyz/v1/images/generations',
+  togetherApiUrl: process.env.TOGETHER_IMAGE_API_URL || 'https://api.x.ai/v1/images/generations',
   togetherImageModel: process.env.TOGETHER_IMAGE_MODEL || 'black-forest-labs/FLUX.2-dev',
 
   aiTemperature: 0.7,
   aiTopP: 0.9,
   aiFrequencyPenalty: 0.5,
   aiPresencePenalty: 0.5,
-  aiMaxTokens: 300,
+  aiMaxTokens: 350,
   aiSafePrompt: false,
   aiProvider: {
     sort: 'throughput'
@@ -47,6 +47,15 @@ export const config = {
   loggingDebug: process.env.LOGING_DEBUG === 'true',
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
+
+// MemoryService warning if embedding model is not configured
+if (!config.aiEmbeddingModel) {
+  console.warn('\n' + '='.repeat(50));
+  console.warn('⚠️  [CONFIG WARNING] AI_EMBEDDING_MODEL is not set');
+  console.warn('   MemoryService will not work without this configuration.');
+  console.warn('   Please set AI_EMBEDDING_MODEL in your .env file.');
+  console.warn('='.repeat(50) + '\n');
+}
 
 const requiredEnvVars = [
   { key: 'API_URL', value: config.apiUrl },

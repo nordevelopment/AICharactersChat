@@ -65,9 +65,6 @@ CREATE TABLE character_memories (
 CREATE INDEX idx_messages_char_id ON messages (character_id);
 CREATE INDEX idx_memories_char_id ON character_memories (character_id);
 
--- Виртуальная векторная таблица (sqlite-vec)
--- Используем 2560 (OpenRouter возвращает 2560 для qwen/qwen3-embedding-4b)
-CREATE VIRTUAL TABLE vec_character_memories USING vec0(
-  embedding float[2560]
-);
+-- Примечание: виртуальная таблица vec_character_memories создаётся
+-- динамически в memory.service.ts с размерностью текущей модели
 
