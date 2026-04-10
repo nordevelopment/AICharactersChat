@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import path from 'path';
-
 dotenv.config();
 
 export const config = {
@@ -12,7 +11,6 @@ export const config = {
   aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'x-ai/grok-4.1-fast', //dont change this model
   aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || 'qwen/qwen3-embedding-4b',
 
-  // Image service configuration
   imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
   
   xaiApiKey: process.env.XAI_API_KEY || '',
@@ -50,7 +48,6 @@ export const config = {
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 
-// Валидация обязательных переменных окружения
 const requiredEnvVars = [
   { key: 'API_URL', value: config.apiUrl },
   { key: 'API_KEY', value: config.apiKey },
@@ -65,7 +62,6 @@ if (missingVars.length > 0) {
   console.error('Please check your .env file.');
   console.error('='.repeat(50) + '\n');
   
-  // В режиме продакшена выходим с ошибкой, в деве просто громко предупреждаем
   if (config.nodeEnv === 'production') {
     process.exit(1);
   }
