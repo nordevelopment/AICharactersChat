@@ -96,6 +96,18 @@ document.addEventListener('alpine:init', () => {
             this.isTyping = true;
             this.typingMessage = '';
             this.typingReasoning = '';
+            let assistantReplyCommitted = false;
+
+            const pushAssistantMessage = (replyText, reasoningText = '') => {
+                if (assistantReplyCommitted) return;
+                let msgContent = replyText;
+                if (reasoningText) {
+                    msgContent = `<details class="reasoning-details mb-2"><summary class="text-muted small" style="cursor:pointer">Thought Process</summary>\n<div class="content text-muted small mt-1" style="border-left: 2px solid #555; padding-left: 8px;">\n${reasoningText}\n</div>\n</details>\n\n` + msgContent;
+                }
+                this.messages.push({ role: 'assistant', content: msgContent });
+                assistantReplyCommitted = true;
+                this.scrollToBottom();
+            };
 
             try {
                 const apiBase = window.APP_CONFIG?.apiBase || '/api';
@@ -133,15 +145,7 @@ document.addEventListener('alpine:init', () => {
                         try {
                             const data = JSON.parse(trimmed.substring(6));
                             if (data.done) {
-                                let msgContent = fullReply;
-                                if (this.typingReasoning) {
-                                    msgContent = `<details class="reasoning-details mb-2"><summary class="text-muted small" style="cursor:pointer">Thought Process</summary>\n<div class="content text-muted small mt-1" style="border-left: 2px solid #555; padding-left: 8px;">\n${this.typingReasoning}\n</div>\n</details>\n\n` + msgContent;
-                                }
-                                this.messages.push({ role: 'assistant', content: msgContent });
-                                this.isTyping = false;
-                                this.typingMessage = '';
-                                this.typingReasoning = '';
-                                this.scrollToBottom();
+                                pushAssistantMessage(fullReply, this.typingReasoning);
                                 return;
                             }
                             if (data.reply) {
@@ -158,10 +162,32 @@ document.addEventListener('alpine:init', () => {
                         }
                     }
                 }
+
+                // Поток завершился без явного done-события: сохраняем частичный ответ
+                if (fullReply.trim()) {
+                    pushAssistantMessage(fullReply, this.typingReasoning);
+                    this.messages.push({
+                        role: 'assistant',
+                        content: '⚠️ Ответ был прерван, показана частичная версия.'
+                    });
+                } else {
+                    this.messages.push({ role: 'assistant', content: 'Error: Stream ended unexpectedly.' });
+                }
             } catch (err) {
                 console.error("Stream failed:", err);
+                if (fullReply.trim()) {
+                    pushAssistantMessage(fullReply, this.typingReasoning);
+                    this.messages.push({
+                        role: 'assistant',
+                        content: '⚠️ Ошибка соединения: показана частичная версия ответа.'
+                    });
+                } else {
+                    this.messages.push({ role: 'assistant', content: 'Error: Could not get response.' });
+                }
+            } finally {
                 this.isTyping = false;
-                this.messages.push({ role: 'assistant', content: 'Error: Could not get response.' });
+                this.typingMessage = '';
+                this.typingReasoning = '';
             }
         },
 
@@ -210,4 +236,5 @@ document.addEventListener('alpine:init', () => {
         }
     }));
 });
+
 
