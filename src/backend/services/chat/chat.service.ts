@@ -99,8 +99,8 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   /**
    * Check if current user message should be processed for memory immediately
    */
-  async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
-    const memoryRegex = /^(remember|save|store)\s*[:\-\s]\s*(.+)/i;
+    async processImmediateMemory(message: string, characterId: number, userId: number, logger?: any): Promise<void> {
+    const memoryRegex = /^(запомни|запоминай|remember|сохрани|save)\s*[:\-\—\s]\s*(.+)/i;
     const match = message.match(memoryRegex);
     
     if (match) {
@@ -364,11 +364,16 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         usage
       );
     } else {
+      // Bug 3 fix: if tool calls exist but executor is missing, log warning but still save response
+      if (pendingToolCalls.length > 0 && !this.toolExecutor) {
+        logger?.warn({ pendingToolCalls: pendingToolCalls.length }, '[CHAT SERVICE] Tool executor missing, saving partial response');
+      }
+
       if (!config.aiStreaming && fullReply) {
         yield { reply: fullReply };
       }
       
-      // Save final response for non-tool case
+      // Save final response — now guaranteed for all non-tool-executor cases
       if (userId && fullReply) {
         Message.add(character.id, userId, { role: 'assistant', content: fullReply });
       }

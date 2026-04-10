@@ -18,10 +18,12 @@
 **Our Solution:** A **lightning-fast**, self-hosted platform that gets you roleplaying in **under 5 minutes**.
 
 ```bash
-npm install && npm run db:reset && npm run db:seed && npm run dev
+npm install && npm run db:reset && npm run db:seed && npm run start
 # 🎉 You're ready to chat!
-```
 
+# For dev mode 
+run run dev 
+```
 ---
 
 ## ⚡ **Core Advantages**
@@ -57,7 +59,7 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ### 🎭 **Character Management**
 
 - **Visual Dashboard** - No JSON editing required
-- **Full Customization** - Personality, scenario, temperature, tokens
+- **Full Customization** - Personality, scenario, temperature, tokens, tools, Reasoning
 - **Avatar Support** - Custom character images
 - **Quick Switching** - Jump between characters instantly
 
@@ -104,50 +106,6 @@ npm install && npm run db:reset && npm run db:seed && npm run dev
 ```
 🤖 OpenRouter API           → Access to all major AI models & Embeddings
 🎨 Together AI               → FLUX image generation
-```
-
----
-
-## � **Project Structure**
-
-```
-src/
-├── backend/
-│   ├── server.ts              # Entry point
-│   ├── app.ts                 # Fastify plugin registration
-│   ├── config/
-│   │   └── config.ts          # Environment configuration
-│   ├── database/
-│   │   ├── schema.sql         # Database structure
-│   │   ├── reset.ts           # Database reset utility
-│   │   ├── seed.ts            # Database seeding
-│   │   └── sqlite.ts          # Repository pattern implementation
-│   ├── models/
-│   │   ├── User.ts            # User model
-│   │   ├── Character.ts       # Character model
-│   │   └── Message.ts         # Message model
-│   ├── routes/
-│   │   ├── auth.routes.ts     # Authentication endpoints
-│   │   ├── character.routes.ts # Character CRUD
-│   │   ├── chat.routes.ts     # Chat & SSE streaming
-│   │   ├── image.routes.ts    # Image generation
-│   │   └── user.routes.ts     # User profile
-│   ├── services/
-│   │   ├── ai.service.ts      # AI chat & streaming
-│   │   └── image.service.ts   # Image generation
-│   ├── tools/
-│   │   └── tools.ts           # Agent tool definitions
-│   └── types/
-│       └── *.ts               # TypeScript interfaces
-└── frontend/
-    ├── app_*.js               # Page-specific logic
-    ├── config.js              # Frontend configuration
-    └── styles.css             # Cyberpunk theme
-
-views/                         # HTML templates
-storage/                       # Generated content (gitignored)
-├── generated/                 # AI images
-└── sandbox/                   # AI file operations
 ```
 
 ---
