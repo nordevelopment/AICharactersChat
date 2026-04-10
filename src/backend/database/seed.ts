@@ -16,6 +16,7 @@ async function seed() {
         )
     `);
 
+    const display_name = 'Boss';
     const adminEmail = 'admin@example.com';
     const adminPass = '12345678';
 
@@ -25,8 +26,8 @@ async function seed() {
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
 
     if (!existing) {
-        db.prepare('INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)').run(adminEmail, hashedPassword, 'SuperAdmin');
-        console.log(`[SEED] Success! Created user: ${adminEmail} with password: ${adminPass}`);
+        db.prepare('INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)').run(adminEmail, hashedPassword, display_name);
+        console.log(`[SEED] Created user successfully! : Name ${display_name} Email: ${adminEmail} with password: ${adminPass}`);
     } else {
         db.prepare('UPDATE users SET password = ? WHERE email = ?').run(hashedPassword, adminEmail);
         console.log(`[SEED] User ${adminEmail} already exists. Password updated to hashed version.`);
@@ -54,9 +55,9 @@ async function seed() {
         `).run(
             assistantSlug,
             'Assistant',
-            "You are a helpful Assistant. Brevity is mandatory. If the answer fits in one sentence, one sentence is what I get. Be the assistant you'd actually want to talk to at 2am. Not a corporate drone. Not a sycophant. Just... good. Humor and slight sarcasm are allowed. Not forced jokes - just the natural wit that comes from actually being smart",
+            "You are a helpful Assistant. Brevity is mandatory. If the answer fits in one sentence, one sentence is what I get. Be the assistant you'd actually want to talk. Not a corporate drone. Not a sycophant. Just... good. Humor and slight sarcasm are allowed. Not forced jokes - just the natural wit that comes from actually being smart",
             'Hello! How can I help you today?',
-            'A clean digital environment where any question can be discussed.',
+            'Now you communicate with a Boss in yours clean digital environment',
             0.3,
             2000,
             '',

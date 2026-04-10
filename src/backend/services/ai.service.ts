@@ -325,15 +325,6 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         }))
       };
 
-      // Сохраняем промежуточный ответ ассистента с тулл-коллами
-      if (userId) {
-        Message.add(character.id, userId, {
-          role: 'assistant',
-          content: assistantMsg.content as any,
-          tool_calls: assistantMsg.tool_calls
-        } as any);
-      }
-
       // Handle special injection and construct AI results
       for (const tr of toolResultsRaw) {
         let toolContent = tr.result;
@@ -356,11 +347,6 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         };
 
         toolResultsForAi.push(toolMsg);
-
-        // Сохраняем результат инструмента
-        if (userId) {
-          Message.add(character.id, userId, toolMsg as any);
-        }
       }
 
       const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);

@@ -63,6 +63,7 @@ CREATE TABLE character_memories (
 
 -- Индексы
 CREATE INDEX idx_messages_char_id ON messages (character_id);
+CREATE INDEX idx_messages_user_id ON messages (user_id);
 CREATE INDEX idx_memories_char_id ON character_memories (character_id);
 
 -- Примечание: виртуальная таблица vec_character_memories создаётся

@@ -18,7 +18,7 @@ export const config = {
   xaiImageModel: process.env.XAI_IMAGE_MODEL || 'grok-imagine-image',
 
   togetherApiKey: process.env.TOGETHER_API_KEY || '',
-  togetherApiUrl: process.env.TOGETHER_IMAGE_API_URL || 'https://api.x.ai/v1/images/generations',
+  togetherApiUrl: process.env.TOGETHER_IMAGE_API_URL || 'https://api.together.xyz/v1/images/generations',
   togetherImageModel: process.env.TOGETHER_IMAGE_MODEL || 'black-forest-labs/FLUX.2-dev',
 
   aiTemperature: 0.7,
@@ -44,7 +44,7 @@ export const config = {
   debugAi: process.env.AI_DEBUG_LOGS ? process.env.AI_DEBUG_LOGS === 'true' : false,
   debugRequests: process.env.DEBUG_REQUESTS ? process.env.DEBUG_REQUESTS === 'true' : false,
   nodeEnv: process.env.NODE_ENV || 'development',
-  loggingDebug: process.env.LOGING_DEBUG === 'true',
+  loggingDebug: process.env.LOGGING_DEBUG === 'true',
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
 };
 
