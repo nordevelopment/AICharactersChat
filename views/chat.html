@@ -13,60 +13,12 @@
 
 <body class="has-navbar" x-data="{ ...chatApp(), ...userProfileApp(), prefix: window.APP_CONFIG?.appPrefix || '' }"
     x-init="init()" x-cloak>
-    <nav class="navbar navbar-expand-lg navbar-cyber">
-        <div class="container-fluid">
-            <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
-            <button type="button" id="chat-sidebar-toggle" class="d-lg-none btn btn-outline-info me-2"
-                @click="sidebarActive = !sidebarActive">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
-                    viewBox="0 0 16 16">
-                    <path fill-rule="evenodd"
-                        d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-                </svg>
-            </button>
-            <div class="navbar-collapse" id="navbarNav">
-                <div class="dropdown">
-                    <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <div class="profile-avatar-sm"
-                            x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
-                        <span>Menu</span>
-                    </div>
-
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
-                        </li>
-                        <li><a class="dropdown-item dropdown-item-cyber" href="#"
-                                @click.prevent="openProfileModal()">Profile Settings</a></li>
-                        <li>
-                            <hr class="dropdown-divider border-secondary">
-                        </li>
-                        <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
-                                @click.prevent="logout()">Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
 
     <div class="wrapper">
-        <!-- Mobile Sidebar Overlay -->
-        <div class="sidebar-overlay" x-show="sidebarActive" x-transition.opacity @click="sidebarActive = false" x-cloak>
-        </div>
 
         <div class="sidebar" id="chat-sidebar" :class="{ 'active': sidebarActive }">
-            <div class="sidebar-header">
-                <h4 class="mb-3">Characters</h4>
-                <a :href="prefix + '/characters'" class="btn btn-sm w-100 manage-btn">Manage Characters</a>
-            </div>
             <div class="character-list">
+                <p class="h5">Characters</p>
                 <template x-for="char in characters" :key="char.id">
                     <div class="character-item" :class="{ 'active': currentCharacter?.id === char.id }"
                         @click="selectCharacter(char)">
@@ -86,8 +38,55 @@
                 </template>
             </div>
         </div>
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" x-show="sidebarActive" x-transition.opacity @click="sidebarActive = false" x-cloak>
+        </div>
 
         <div class="chat-container">
+
+            <nav class="navbar navbar-expand-lg navbar-cyber">
+                <div class="container-fluid">
+                    <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
+                    <button type="button" id="chat-sidebar-toggle" class="d-md-none btn btn-outline-info me-2"
+                        @click="sidebarActive = !sidebarActive">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
+                            viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+                        </svg>
+                    </button>
+                    <div class="navbar-collapse" id="navbarNav">
+                        <div class="dropdown">
+                            <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                                <div class="profile-avatar-sm"
+                                    x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
+                                <span>Menu</span>
+                            </div>
+
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
+                                <li class="nav-item">
+                                    <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>                            
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
+                                </li>
+                                <li><a class="dropdown-item dropdown-item-cyber" href="#"
+                                        @click.prevent="openProfileModal()">Profile Settings</a></li>
+                                <li>
+                                    <hr class="dropdown-divider border-secondary">
+                                </li>
+                                <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
+                                        @click.prevent="logout()">Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
             <div class="chat-header">
 
                 <img x-show="currentCharacter?.avatar" :src="currentCharacter?.avatar ?? ''" id="character-avatar" />
