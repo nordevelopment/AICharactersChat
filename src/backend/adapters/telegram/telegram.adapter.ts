@@ -151,6 +151,9 @@ export class TelegramAdapter implements ChatAdapter {
       case '/reset':
         await this.handleResetCommand(chat.id, from.id);
         break;
+      // case '/post':
+      //   await this.handlePostCommand(chat.id, from.id, args);
+      //   break;
       default:
         await this.telegramService.sendMessage({
           chat_id: chat.id,
@@ -195,6 +198,7 @@ Your default character is already set. Just send a message to begin!`;
 /characters - List all available characters
 /character [name] - Select specific character
 /reset - Clear conversation history
+/post [channel] message - Post message to channel (admin only)
 /help - Show this help
 
 <b>Features:</b>
@@ -202,11 +206,13 @@ Your default character is already set. Just send a message to begin!`;
 - Long-term memory (AI remembers important facts)
 - Image support (send images to analyze)
 - Voice messages (if enabled)
+- Channel posting (admin only)
 
 <b>Tips:</b>
 - Use "Remember: [fact]" to save important information
 - AI will remember details across conversations
-- Switch characters anytime with /character command`;
+- Switch characters anytime with /character command
+- Use /post to share AI responses or announcements to channels`;
 
     await this.telegramService.sendMessage({
       chat_id: chatId,
@@ -318,6 +324,91 @@ Your default character is already set. Just send a message to begin!`;
       await this.telegramService.sendMessage({
         chat_id: chatId,
         text: 'Failed to reset conversation. Please try again.'
+      });
+    }
+  }
+
+  private async handlePostCommand(chatId: number, userId: number, args: string[]): Promise<void> {
+    // Check if user is admin
+    if (!this.telegramService.isUserAdmin(userId)) {
+      await this.telegramService.sendMessage({
+        chat_id: chatId,
+        text: 'Sorry, only admins can use the /post command.'
+      });
+      return;
+    }
+
+    if (args.length === 0) {
+      await this.telegramService.sendMessage({
+        chat_id: chatId,
+        text: `Usage: /post [channel] message\n\nExample: /post @mychannel Hello everyone!\nOr: /post Hello everyone! (uses default channel)`
+      });
+      return;
+    }
+
+    try {
+      // Check if first argument is a channel (starts with @ or is numeric)
+      let channel: string | undefined;
+      let messageStartIndex = 0;
+
+      if (args[0].startsWith('@') || /^\d+$/.test(args[0])) {
+        channel = args[0];
+        messageStartIndex = 1;
+      }
+
+      // Join remaining arguments as message
+      const message = args.slice(messageStartIndex).join(' ');
+      
+      if (!message) {
+        await this.telegramService.sendMessage({
+          chat_id: chatId,
+          text: 'Error: message cannot be empty'
+        });
+        return;
+      }
+
+      // Use configured channel if none specified
+      const targetChannel = channel || telegramConfig.channel;
+      
+      if (!targetChannel) {
+        await this.telegramService.sendMessage({
+          chat_id: chatId,
+          text: 'Error: no channel specified and no default channel configured'
+        });
+        return;
+      }
+
+      // Check if channel is allowed
+      if (!telegramConfig.isChannelAllowed(targetChannel)) {
+        await this.telegramService.sendMessage({
+          chat_id: chatId,
+          text: `Error: channel "${targetChannel}" is not in the allowed channels list`
+        });
+        return;
+      }
+
+      // Post to channel
+      const result = await this.telegramService.postToChannel(targetChannel, message, {
+        parse_mode: 'HTML'
+      });
+
+      if (result.ok) {
+        await this.telegramService.sendMessage({
+          chat_id: chatId,
+          text: `Message successfully posted to ${targetChannel} (message ID: ${result.message_id})`
+        });
+      } else {
+        await this.telegramService.sendMessage({
+          chat_id: chatId,
+          text: `Error posting to channel: ${result.description}`
+        });
+      }
+
+    } catch (error) {
+      this.logger?.error({ error, userId }, '[TELEGRAM ADAPTER] Failed to post to channel');
+      await this.telegramService.sendMessage({
+        chat_id: chatId,
+        text: 'Failed to post to channel. Please check the channel identifier and try again.'
       });
     }
   }

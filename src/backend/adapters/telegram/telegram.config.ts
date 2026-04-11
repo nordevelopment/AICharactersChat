@@ -12,6 +12,9 @@ export const telegramConfig = {
   allowedUsers: process.env.TELEGRAM_ALLOWED_USERS?.split(',').map(id => id.trim()) || [],
   adminUsers: process.env.TELEGRAM_ADMIN_USERS?.split(',').map(id => id.trim()) || [],
   
+  // Channel configuration
+  channel: process.env.TELEGRAM_CHANNEL || '',
+  
   // Features (simplified - always enabled by default)
   enableImages: process.env.TELEGRAM_ENABLE_IMAGES === 'true', // Disabled by default for security
   enableVoiceMessages: process.env.TELEGRAM_ENABLE_VOICE === 'true', // Disabled by default
@@ -42,6 +45,27 @@ export const telegramConfig = {
       console.info('[TELEGRAM CONFIG] Access restricted to allowed users:', this.allowedUsers.length);
     }
     
+    if (this.channel) {
+      console.info('[TELEGRAM CONFIG] Channel configured:', this.channel);
+    }
+    
     return true;
+  },
+
+  /**
+   * Check if channel is allowed for posting
+   */
+  isChannelAllowed(channelIdentifier: string): boolean {
+    // If no channel configured, no posting allowed
+    if (!this.channel) return false;
+    
+    // Normalize channel identifier (case-insensitive)
+    const normalizedChannel = channelIdentifier.toLowerCase();
+    const configuredChannel = this.channel.toLowerCase();
+    
+    // Check if matches configured channel
+    return normalizedChannel === configuredChannel ||
+           normalizedChannel === (configuredChannel.startsWith('@') ? configuredChannel : `@${configuredChannel}`) ||
+           configuredChannel === (normalizedChannel.startsWith('@') ? normalizedChannel : `@${normalizedChannel}`);
   }
 };

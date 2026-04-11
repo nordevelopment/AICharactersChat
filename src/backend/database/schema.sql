@@ -30,10 +30,13 @@ CREATE TABLE characters (
   first_message TEXT,
   scenario TEXT,
   temperature REAL DEFAULT 0.8,
-  max_tokens INTEGER DEFAULT 350,
+  max_tokens INTEGER DEFAULT 500,
   avatar TEXT,
+  create_image INTEGER DEFAULT 0,
   tools INTEGER DEFAULT 0,
+  use_tools TEXT,
   reasoning INTEGER DEFAULT 0,
+  reasoning_level TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

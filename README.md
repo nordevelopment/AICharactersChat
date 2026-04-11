@@ -156,6 +156,10 @@ TELEGRAM_WEBHOOK_SECRET=your_webhook_secret
 
 # Access Control (leave empty for public access)
 TELEGRAM_ALLOWED_USERS=
+TELEGRAM_ADMIN_USERS=123456789,987654321
+
+# Channel Posting (optional)
+TELEGRAM_CHANNEL=@mychannel
 
 # Debugging
 AI_DEBUG_LOGS=true
@@ -237,6 +241,7 @@ AI Character Chat includes a full-featured Telegram bot that allows users to int
 /characters - List all available AI characters
 /character [name] - Select specific character
 /reset     - Clear conversation history
+/post [channel] message - Post message to channel (admin only)
 /status    - Show current character and status
 /memory    - Display memory system information
 ```
@@ -276,6 +281,75 @@ AI Character Chat includes a full-featured Telegram bot that allows users to int
 #### **Detailed Setup**
 
 For complete Telegram bot setup instructions, troubleshooting, and advanced configuration, see: **[TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)**
+
+---
+
+##  **Telegram Channel Posting**
+
+### **Post Messages to Channels and Groups**
+
+AI Character Chat allows AI characters and admins to post messages directly to Telegram channels and groups.
+
+#### **Key Features**
+
+- **AI-Generated Posts** - AI characters can create and post content to channels
+- **Admin Control** - Only admins can use the `/post` command manually
+- **Channel Restrictions** - Configure allowed channels for security
+- **HTML Formatting** - Support for rich text formatting in posts
+- **Default Channel** - Set a default channel for quick posting
+
+#### **AI Tool Integration**
+
+The `post_to_telegram_channel` tool is available to AI characters when enabled:
+
+```typescript
+// AI can automatically post updates, announcements, or content
+await post_to_telegram_channel({
+  message: "Hello everyone! Here's today's update... <b>Important news</b>",
+  channel: "@mychannel" // optional, uses default if not specified
+});
+```
+
+#### **Admin Commands**
+
+```
+/post @channelname Hello everyone! - Post to specific channel
+/post Hello everyone! - Post to default channel
+/post @channelname <b>Bold text</b> and <i>italic</i> - HTML formatting
+```
+
+#### **Configuration**
+
+Add these variables to your `.env` file:
+
+```env
+# Admin users who can use /post command
+TELEGRAM_ADMIN_USERS=123456789,987654321
+
+# Allowed channels (optional - restrict posting to specific channels)
+TELEGRAM_ALLOWED_CHANNELS=@mychannel,@anotherchannel
+
+# Default channel for quick posting
+TELEGRAM_DEFAULT_CHANNEL=@mychannel
+```
+
+#### **Setup Requirements**
+
+1. **Bot Permissions**
+   - Add bot as administrator to target channels/groups
+   - Enable "Post Messages" permission
+   - For channels: bot must be admin with post rights
+   - For groups: bot needs "Can post messages" permission
+
+2. **Channel Identifiers**
+   - Use `@channelname` for public channels
+   - Use chat ID (numeric) for private groups/channels
+   - Get chat ID by adding bot to group and using `/start`
+
+3. **Security Best Practices**
+   - Always restrict admin users with `TELEGRAM_ADMIN_USERS`
+   - Use `TELEGRAM_ALLOWED_CHANNELS` to limit posting destinations
+   - Set a default channel to prevent accidental posts
 
 ---
 

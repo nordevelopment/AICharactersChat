@@ -226,4 +226,75 @@ export class TelegramService {
       throw error;
     }
   }
+
+  /**
+   * Post message to a channel or group
+   */
+  async postToChannel(channelIdentifier: string, message: string, options?: {
+    parse_mode?: 'HTML' | 'Markdown' | 'MarkdownV2';
+    disable_web_page_preview?: boolean;
+    disable_notification?: boolean;
+  }): Promise<any> {
+    try {
+      // Support both @channel_username and numeric chat_id
+      const chatId = channelIdentifier.startsWith('@') ? channelIdentifier : channelIdentifier;
+      
+      const payload: SendMessagePayload = {
+        chat_id: chatId,
+        text: message,
+        parse_mode: options?.parse_mode || 'HTML',
+        disable_web_page_preview: options?.disable_web_page_preview,
+        disable_notification: options?.disable_notification,
+      };
+
+      const response = await axios.post(`${this.baseUrl}/sendMessage`, payload);
+      return response.data;
+    } catch (error) {
+      console.error('[TELEGRAM SERVICE] Failed to post to channel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Post photo to a channel or group
+   */
+  async postPhotoToChannel(channelIdentifier: string, photo: string, caption?: string, options?: {
+    parse_mode?: 'HTML' | 'Markdown' | 'MarkdownV2';
+    disable_notification?: boolean;
+  }): Promise<any> {
+    try {
+      // Support both @channel_username and numeric chat_id
+      const chatId = channelIdentifier.startsWith('@') ? channelIdentifier : channelIdentifier;
+      
+      const payload: SendPhotoPayload = {
+        chat_id: chatId,
+        photo: photo,
+        caption: caption,
+        parse_mode: options?.parse_mode || 'HTML',
+        disable_notification: options?.disable_notification,
+      };
+
+      const response = await axios.post(`${this.baseUrl}/sendPhoto`, payload);
+      return response.data;
+    } catch (error) {
+      console.error('[TELEGRAM SERVICE] Failed to post photo to channel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get chat information to validate channel access
+   */
+  async getChatInfo(chatIdentifier: string): Promise<any> {
+    try {
+      const chatId = chatIdentifier.startsWith('@') ? chatIdentifier : chatIdentifier;
+      const response = await axios.get(`${this.baseUrl}/getChat`, {
+        params: { chat_id: chatId }
+      });
+      return response.data.result;
+    } catch (error) {
+      console.error('[TELEGRAM SERVICE] Failed to get chat info:', error);
+      throw error;
+    }
+  }
 }
