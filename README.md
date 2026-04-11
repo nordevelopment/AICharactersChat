@@ -1,4 +1,4 @@
-# AI Character Chat 🤖🎭
+# AI Characters Chat 🤖🎭
 
 > **The Lightweight AI Roleplay and Agents Platform - No Bloat, All Power**
 
@@ -11,7 +11,7 @@
 
 > "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)**
 
-## 🎯 **Why AI Character Chat?**
+## 🎯 **Why AI Characters Chat?**
 
 **The Problem:** Most AI tools require 2GB Docker images, complex configurations, and 50+ setup steps.
 
@@ -477,5 +477,7 @@ _Developed with AI control and Architecture by Norayr Petrosyan_
 ---
 
 _Built with a touch of sarcasm and faith in a digital future._
+
+#AI #aichat #aiagents #airoleplay #GrokAI #OpenRouter #Telegram #Automation #selfhosted #opensource
 
 </div>
