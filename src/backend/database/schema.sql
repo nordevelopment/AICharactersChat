@@ -1,7 +1,7 @@
 -- src/backend/database/schema.sql
--- Полный сброс и создание структуры базы данных
+-- Full reset and create database structure
 
--- Отключаем проверку внешних ключей на время удаления
+-- Disable foreign key constraint checking during drop
 PRAGMA foreign_keys = OFF;
 
 DROP TABLE IF EXISTS messages;
@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS vec_character_memories;
 
 PRAGMA foreign_keys = ON;
 
--- Таблица пользователей
+-- Users table
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE users (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица персонажей
+-- Characters table
 CREATE TABLE characters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   slug TEXT UNIQUE NOT NULL,
@@ -30,14 +30,14 @@ CREATE TABLE characters (
   first_message TEXT,
   scenario TEXT,
   temperature REAL DEFAULT 0.8,
-  max_tokens INTEGER DEFAULT 250,
+  max_tokens INTEGER DEFAULT 350,
   avatar TEXT,
   tools INTEGER DEFAULT 0,
   reasoning INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Таблица сообщений
+-- Messages table
 CREATE TABLE messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE messages (
   FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );
 
--- Таблица фактов памяти
+-- Memory facts table
 CREATE TABLE character_memories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -61,11 +61,8 @@ CREATE TABLE character_memories (
   FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );
 
--- Индексы
+-- Indexes
 CREATE INDEX idx_messages_char_id ON messages (character_id);
 CREATE INDEX idx_messages_user_id ON messages (user_id);
 CREATE INDEX idx_memories_char_id ON character_memories (character_id);
-
--- Примечание: виртуальная таблица vec_character_memories создаётся
--- динамически в memory.service.ts с размерностью текущей модели
 

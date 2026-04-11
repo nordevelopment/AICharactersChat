@@ -17,27 +17,7 @@
 
 **Our Solution:** A **lightning-fast**, self-hosted platform that gets you roleplaying in **under 5 minutes**.
 
-```bash
-npm install && npm run db:reset && npm run db:seed && npm run start
-# 🎉 You're ready to chat!
-
-# For dev mode 
-run run dev 
-```
----
-
-## ⚡ **Core Advantages**
-
-| Feature            | AI Character Chat | SillyTavern     | Character.AI      |
-| ------------------ | ----------------- | --------------- | ----------------- |
-| **Setup Time**     | 5 minutes         | 30+ minutes     | Instant (cloud)   |
-| **Installation**   | 3 commands        | Docker + config | Web only          |
-| **Resource Usage** | ~100MB RAM        | 2GB+ Docker     | N/A               |
-| **Local Control**  | ✅ Full control   | ✅ Full control | ❌ Cloud only     |
-| **Customization**  | ✅ Full source    | ✅ Full source  | ❌ Limited        |
-| **Privacy**        | ✅ 100% private   | ✅ 100% private | ❌ Data collected |
-
----
+See **Quick Start** section below for detailed installation instructions.
 
 ## 🚀 **Powerful Features**
 
@@ -109,7 +89,6 @@ run run dev
 ```
 
 ---
-
 ## 🚀 **Quick Start**
 
 ### **1. Install Dependencies**
@@ -148,7 +127,7 @@ npm run build && npm run start
 
 ## ⚙️ **Configuration**
 
-### **Required Environment Variables**
+### **Required Variables**
 
 ```env
 # Server
@@ -156,26 +135,28 @@ PORT=3000
 HOST=0.0.0.0
 
 # AI Chat (OpenRouter)
-API_URL=https://openrouter.ai/api/v1/chat/completions
 API_KEY=your_openrouter_api_key
 AI_DEFAULT_MODEL=x-ai/grok-4.1-fast
 
-# Image Generation (Together AI)
-TOGETHER_API_KEY=your_together_api_key
-TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
-
-#XAI API Key (for Grok models)
-XAI_API_KEY=your_xai_api_key_here
-XAI_IMAGE_MODEL=grok-imagine-image
-
-
 # Security
-SESSION_SECRET=your_32_char_secret_key
+JWT_SECRET=your_jwt_secret_at_least_32_chars_long
 ```
 
-### **Optional Settings**
+### **Optional Variables**
 
 ```env
+# Image Generation
+TOGETHER_API_KEY=your_together_api_key
+XAI_API_KEY=your_xai_api_key
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook/telegram
+TELEGRAM_WEBHOOK_SECRET=your_webhook_secret
+
+# Access Control (leave empty for public access)
+TELEGRAM_ALLOWED_USERS=
+
 # Debugging
 AI_DEBUG_LOGS=true
 DEBUG_REQUESTS=true
@@ -234,6 +215,70 @@ DEBUG_REQUESTS=true
 
 ---
 
+## 📱 **Telegram Bot Integration**
+
+### **Chat with AI Characters on Telegram**
+
+AI Character Chat includes a full-featured Telegram bot that allows users to interact with AI characters directly through Telegram.
+
+#### **Key Features**
+
+- **Multi-character Support** - Switch between different AI personalities
+- **Long-term Memory** - AI remembers important facts across conversations  
+- **Command System** - Bot commands for character management
+- **Real-time Processing** - Instant responses via webhooks
+- **Security** - Whitelist support and admin controls
+
+#### **Available Commands**
+
+```
+/start     - Welcome message and getting started
+/help      - Show help information
+/characters - List all available AI characters
+/character [name] - Select specific character
+/reset     - Clear conversation history
+/status    - Show current character and status
+/memory    - Display memory system information
+```
+
+#### **Setup Instructions**
+
+1. **Create Telegram Bot**
+   - Talk to `@BotFather` on Telegram
+   - Create a new bot and save the token
+
+2. **Configure Environment**
+   - Refer to the **Configuration** section for setup instructions
+   - Add the following variables to your `.env` file:
+     ```env
+     TELEGRAM_BOT_TOKEN=your_bot_token_here
+     TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook/telegram
+     TELEGRAM_WEBHOOK_SECRET=your_webhook_secret
+     ```
+   - Optional: Restrict access to specific users
+     ```env
+     TELEGRAM_ALLOWED_USERS=123456789,987654321
+     ```
+
+3. **Start Server**
+   ```bash
+   npm run dev
+   # Telegram adapter auto-initializes when configured
+   ```
+
+#### **API Endpoints**
+
+- `POST /webhook/telegram` - Telegram webhook endpoint
+- `GET /webhook/telegram/health` - Health check status
+- `POST /webhook/telegram/set` - Set webhook URL (admin)
+- `POST /webhook/telegram/send` - Send test message (admin)
+
+#### **Detailed Setup**
+
+For complete Telegram bot setup instructions, troubleshooting, and advanced configuration, see: **[TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)**
+
+---
+
 ## 🧠 **Technical Deep Dive**
 
 ### **AI Chat Engine**
@@ -258,18 +303,6 @@ users        → Authentication & profiles
 characters   → AI personalities & settings
 messages     → Chat history with metadata
 ```
-
----
-
-## ⚡ **Performance Benefits**
-
-| Metric               | AI Character Chat | Traditional Solutions |
-| -------------------- | ----------------- | --------------------- |
-| **Startup Time**     | ~2 seconds        | 30+ seconds (Docker)  |
-| **Memory Usage**     | ~100MB            | 2GB+ (Docker)         |
-| **Disk Space**       | ~50MB             | 500MB+                |
-| **Response Latency** | <500ms            | 1000ms+               |
-| **Setup Complexity** | 3 commands        | Docker + config       |
 
 ---
 
@@ -315,10 +348,9 @@ messages     → Chat history with metadata
 We welcome contributions! Here's how to get started:
 
 1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Make your changes**
-4. **Test thoroughly**: `npm run test`
-5. **Submit a pull request**
+2. **Make your changes**
+3. **Test thoroughly**: `npm run test`
+4. **Submit a pull request**
 
 ### **Development Guidelines**
 
@@ -329,19 +361,27 @@ We welcome contributions! Here's how to get started:
 
 ---
 
-## � **License**
+## ⚡ **Why Choose AI Character Chat?**
 
-MIT License - feel free to use this project for personal or commercial purposes.
+| Feature            | AI Character Chat | SillyTavern     | Character.AI      |
+| ------------------ | ----------------- | --------------- | ----------------- |
+| **Setup Time**     | 5 minutes         | 30+ minutes     | Instant (cloud)   |
+| **Installation**   | 3 commands        | Docker + config | Web only          |
+| **Resource Usage** | ~100MB RAM        | 2GB+ Docker     | N/A               |
+| **Local Control**  | ✅ Full control   | ✅ Full control | ❌ Cloud only     |
+| **Customization**  | ✅ Full source    | ✅ Full source  | ❌ Limited        |
+| **Privacy**        | ✅ 100% private   | ✅ 100% private | ❌ Data collected |
+| **Startup Time**   | ~2 seconds        | 30+ seconds (Docker)  |
+| **Memory Usage**   | ~100MB            | 2GB+ (Docker)         |
+| **Disk Space**     | ~50MB             | 500MB+                |
+| **Response Latency** | <500ms            | 1000ms+               |
+| **Setup Complexity** | 3 commands        | Docker + config       |
 
 ---
 
-## 🙏 **Acknowledgments**
+## � **License**
 
-- **Fastify Team** - Amazing HTTP framework
-- **OpenRouter** - Unified AI API access
-- **Together AI** - FLUX image generation
-- **Alpine.js** - Lightweight reactivity
-- **All Contributors** - Making AI accessible
+MIT License - feel free to use this project for personal or commercial purposes.
 
 ---
 

@@ -11,6 +11,7 @@ import { chatRoutes } from './controllers/chat';
 import { authRoutes } from './controllers/auth';
 import { userRoutes } from './controllers/user';
 import { imageRoutes } from './controllers/image';
+import { telegramRoutes } from './controllers/telegram';
 import fastifyMultipart from '@fastify/multipart';
 
 
@@ -141,6 +142,13 @@ export async function createApp() {
 
   await server.register(chatRoutes);
   await server.register(imageRoutes);
+  
+  // Telegram integration (optional - won't fail if not configured)
+  try {
+    await server.register(telegramRoutes);
+  } catch (error) {
+    server.log.warn({ error }, '[APP] Failed to register telegram routes (continuing without telegram)');
+  }
 
   return server;
 }
