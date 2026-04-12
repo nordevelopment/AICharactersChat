@@ -40,15 +40,16 @@ async function seed() {
             temperature: 0.2,
             max_tokens: 2000,
             avatar: '',
+            reasoning: 1,
             is_agent: 1 // Agent - gets all tools
         });
         console.log(`[SEED] Success! Created default character: Assistant`);
     }
 
     // ─────────────────────────────────────────────
-    // Create Roleplay Character: Elena (Girlfriend)
+    // Create Roleplay Character: Natalia (Girlfriend)
     // ─────────────────────────────────────────────
-    const gfSlug = 'elena';
+    const gfSlug = 'natalia';
     const gfExists = Character.findBySlug(gfSlug);
 
     if (!gfExists) {
@@ -61,9 +62,10 @@ async function seed() {
             temperature: 0.8,
             max_tokens: 350,
             avatar: '',
+            reasoning: 0,
             is_agent: 0 // Regular character - only image generation
         });
-        console.log(`[SEED] Success! Created roleplay character: Elena`);
+        console.log(`[SEED] Success! Created roleplay character: Natalia`);
     }
 }
 
