@@ -14,7 +14,6 @@ export async function telegramRoutes(server: FastifyInstance) {
   // Initialize adapter on startup
   try {
     await telegramAdapter.initialize();
-    server.log.info('[TELEGRAM ROUTES] Telegram adapter initialized successfully');
   } catch (error) {
     server.log.error({ error }, '[TELEGRAM ROUTES] Failed to initialize Telegram adapter');
     // Don't throw error to allow server to start without Telegram

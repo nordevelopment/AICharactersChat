@@ -4,7 +4,7 @@ import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType } from '../types';
 import { Message } from '../models/Message';
-import { ALL_TOOLS, executeTool } from '../tools/tools';
+import { getAvailableTools, executeTool } from '../tools/tools';
 import { memoryService } from './memory.service';
 
 /**
@@ -168,8 +168,9 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       stream_options: config.aiStreaming ? { include_usage: true } : undefined
     };
 
-    if (character.tools === 1) {
-      payload.tools = ALL_TOOLS;
+    const availableTools = getAvailableTools(character.is_agent === 1);
+    if (availableTools.length > 0) {
+      payload.tools = availableTools;
       payload.tool_choice = 'auto';
     }
 

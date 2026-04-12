@@ -15,21 +15,21 @@ export class Character {
     }
 
     static create(char: Partial<CharacterType>): CharacterType {
-        const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools, reasoning } = char;
+        const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning } = char;
         const stmt = getDB().prepare(`
-            INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools, reasoning) 
+            INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '', tools ? 1 : 0, reasoning ? 1 : 0);
+        stmt.run(slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '', is_agent ? 1 : 0, reasoning ? 1 : 0);
         return this.findBySlug(slug!)!;
     }
 
     static update(slug: string, char: Partial<CharacterType>): CharacterType | undefined {
-        const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools, reasoning } = char;
+        const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning } = char;
         const stmt = getDB().prepare(`
-            UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=?, tools=?, reasoning=? WHERE slug=?
+            UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=?, is_agent=?, reasoning=? WHERE slug=?
         `);
-        stmt.run(name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, tools ? 1 : 0, reasoning ? 1 : 0, slug);
+        stmt.run(name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent ? 1 : 0, reasoning ? 1 : 0, slug);
         return this.findBySlug(slug);
     }
 

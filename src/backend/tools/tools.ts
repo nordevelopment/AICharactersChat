@@ -341,6 +341,18 @@ export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
     .filter(t => t.enabled)
     .map(t => t.definition);
 
+export const IMAGE_TOOLS: ToolDefinition[] = Object.values(TOOLS)
+    .filter(t => t.enabled && t.definition.function.name === 'generate_image')
+    .map(t => t.definition);
+
+export function getAvailableTools(isAgent: boolean = false): ToolDefinition[] {
+    if (isAgent) {
+        return ALL_TOOLS;
+    } else {
+        return IMAGE_TOOLS;
+    }
+}
+
 export async function executeTool(name: string, argsJson: string, logger?: any, context?: ToolContext): Promise<string> {
     const tool = TOOLS[name];
 

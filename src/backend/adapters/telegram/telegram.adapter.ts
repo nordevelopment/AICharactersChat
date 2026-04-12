@@ -27,7 +27,7 @@ export class TelegramAdapter implements ChatAdapter {
     try {
       // Test bot connection
       const botInfo = await this.telegramService.getMe();
-      this.logger?.info({ botInfo }, '[TELEGRAM ADAPTER] Bot initialized successfully');
+      this.logger?.info({ botInfo: { id: botInfo.id, username: botInfo.username, first_name: botInfo.first_name } }, '[TELEGRAM ADAPTER] Bot initialized successfully');
 
       // Set webhook if configured
       if (telegramConfig.webhookUrl) {
@@ -84,7 +84,6 @@ export class TelegramAdapter implements ChatAdapter {
         await this.telegramService.sendMessage(payload);
       }
 
-      this.logger?.info({ userId, messageLength: message.length }, '[TELEGRAM ADAPTER] Message sent');
     } catch (error) {
       this.logger?.error({ userId, error }, '[TELEGRAM ADAPTER] Failed to send message');
       throw error;

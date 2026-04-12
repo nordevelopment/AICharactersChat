@@ -8,7 +8,7 @@ export interface Character {
   temperature: number;
   max_tokens: number;
   avatar?: string;
-  tools?: number;
+  is_agent?: number;
   reasoning?: number;
   created_at?: string;
 }
@@ -22,7 +22,6 @@ export interface ChatMessage {
   tool_calls?: any[];
   tool_call_id?: string;
   name?: string;
-  reasoning?: string;
   is_greeting?: number;
   timestamp?: string;
 }

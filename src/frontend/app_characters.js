@@ -10,7 +10,7 @@ document.addEventListener('alpine:init', () => {
             first_message: '',
             temperature: '',
             max_tokens: '',
-            tools: '',
+            is_agent: '',
             reasoning: '',
         },
         avatarFile: null,
@@ -37,14 +37,14 @@ document.addEventListener('alpine:init', () => {
         },
 
         prepareAdd() {
-            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 300, tools: 0, reasoning: 0 };
+            this.form = { slug: null, name: '', avatar: '', system_prompt: '', scenario: '', first_message: '', temperature: 0.8, max_tokens: 300, is_agent: 0, reasoning: 0 };
             this.formInvalid = false;
             this.bsModal.show();
         },
 
         prepareEdit(char) {
             this.form = { ...char };
-            this.form.tools = char.tools === 1;
+            this.form.is_agent = char.is_agent === 1;
             this.form.reasoning = char.reasoning === 1;
             this.avatarFile = null;
             this.formInvalid = false;
@@ -83,10 +83,10 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
 
-                // Преобразуем tools и reasoning в число для SQLite
+                // Преобразуем is_agent и reasoning в число для SQLite
                 const formData = { ...this.form };
-                if (typeof formData.tools === 'boolean') {
-                    formData.tools = formData.tools ? 1 : 0;
+                if (typeof formData.is_agent === 'boolean') {
+                    formData.is_agent = formData.is_agent ? 1 : 0;
                 }
                 if (typeof formData.reasoning === 'boolean') {
                     formData.reasoning = formData.reasoning ? 1 : 0;

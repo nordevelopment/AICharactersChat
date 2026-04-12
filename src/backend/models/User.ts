@@ -10,6 +10,13 @@ export class User {
         return getDB().prepare('SELECT * FROM users WHERE id = ?').get(id) as UserType | undefined;
     }
 
+    static create(data: Omit<UserType, 'id' | 'created_at'>): UserType {
+        const { email, password, display_name } = data;
+        const stmt = getDB().prepare('INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)');
+        stmt.run(email, password, display_name);
+        return this.findByEmail(email)!;
+    }
+
     static update(id: number, data: Partial<UserType>): UserType | undefined {
         const fields: string[] = [];
         const params: any[] = [];
