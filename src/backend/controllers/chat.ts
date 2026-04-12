@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { Character as CharacterType, ChatRequestPayload } from '../types';
+import { Character as CharacterType, ChatRequestPayload, User } from '../types';
 import { Character } from '../models/Character';
 import { Message } from '../models/Message';
+import { User as UserModel } from '../models/User';
 import { aiService } from '../services/ai.service';
 import { memoryService } from '../services/memory.service';
 import { config } from '../config/config';
@@ -43,6 +44,12 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
     const activeCharacter = Character.findById(character_id);
     if (!activeCharacter) return reply.code(404).send({ error: 'Not found' });
 
+    // Get full user info including 'about' field
+    const userInfo = UserModel.findById(userId);
+    if (!userInfo) return reply.code(404).send({ error: 'User not found' });
+
+    request.log.info({ userInfo }, '[CHAT] User info passed to AI service');
+
     try {
       return reply.sse((async function* () {
         for await (const chunk of aiService.streamChatResponse(
@@ -51,7 +58,7 @@ export async function chatRoutes(server: FastifyInstance, options?: { logger?: a
           message,
           image,
           options?.logger || request.log,
-          request.session.user!.display_name
+          userInfo
         )) {
           if (chunk.reply) {
             yield { data: JSON.stringify({ reply: chunk.reply }) };

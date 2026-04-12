@@ -222,50 +222,49 @@
     x-data="{ ...imageGenerator(), ...userProfileApp(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-init="init()"
     x-cloak>
 
-    <nav class="navbar navbar-expand-lg navbar-cyber">
-        <div class="container-fluid">
-            <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
-            <button type="button" id="chat-sidebar-toggle" class="d-lg-none btn btn-outline-info me-2"
-                @click="sidebarActive = !sidebarActive">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
-                    viewBox="0 0 16 16">
-                    <path fill-rule="evenodd"
-                        d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
-                </svg>
-            </button>
-            <div class="navbar-collapse" id="navbarNav">
-                <div class="dropdown">
-                    <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <div class="profile-avatar-sm"
-                            x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
-                        <span>Chat Menu</span>
-                    </div>
+    <div class="wrapper">
+        <nav class="navbar navbar-expand-lg navbar-cyber">
+            <div class="container-fluid">
+                <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
+                <button type="button" id="chat-sidebar-toggle" class="d-lg-none btn btn-outline-info me-2"
+                    @click="sidebarActive = !sidebarActive">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi-list"
+                        viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
+                    </svg>
+                </button>
+                <div class="navbar-collapse" id="navbarNav">
+                    <div class="dropdown">
+                        <div class="user-nav-summary dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <div class="profile-avatar-sm"
+                                x-text="user.display_name ? user.display_name[0].toUpperCase() : 'U'"></div>
+                            <span>Chat Menu</span>
+                        </div>
 
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
-                        </li>
-                        <li><a class="dropdown-item dropdown-item-cyber" href="#"
-                                @click.prevent="openProfileModal()">Profile Settings</a></li>
-                        <li>
-                            <hr class="dropdown-divider border-secondary">
-                        </li>
-                        <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
-                                @click.prevent="logout()">Logout</a></li>
-                    </ul>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-cyber" aria-labelledby="userDropdown">
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-cyber active" :href="prefix + '/chat'">Chat</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-cyber" :href="prefix + '/characters'">Characters</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
+                            </li>
+                            <li><a class="dropdown-item dropdown-item-cyber" :href="prefix + '/profile'">Profile Settings</a></li>
+                            <li>
+                                <hr class="dropdown-divider border-secondary">
+                            </li>
+                            <li><a class="dropdown-item dropdown-item-cyber text-danger" href="#"
+                                    @click.prevent="logout()">Logout</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="wrapper">
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="m-0">AI Image Generator</h3>
@@ -300,7 +299,7 @@
                         <div class="mb-3">
                             <label class="form-label text-cyan">Prompt</label>
                             <div class="prompt-container">
-                                <textarea x-model="form.prompt" class="form-control" rows="3"
+                                <textarea x-model="form.prompt" class="form-control" rows="5"
                                           placeholder="Describe the image you want to see..."
                                           @input="updatePromptPreview()"></textarea>
                                 <div class="prompt-preview" x-show="form.prompt.length > 0">
@@ -438,42 +437,6 @@
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Modal -->
-    <div class="modal fade modal-cyber" id="profileModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="updateProfile()">
-                        <div class="mb-3">
-                            <label class="form-label text-dim">Display Name</label>
-                            <input type="text" x-model="profileForm.display_name" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-dim">New Password (optional)</label>
-                            <input type="password" x-model="profileForm.password" class="form-control"
-                                placeholder="••••••••">
-                            <small class="text-muted">Leave blank to keep current password</small>
-                        </div>
-
-                        <div x-show="profileMessage"
-                            :class="profileMessage?.type === 'error' ? 'alert alert-danger' : 'alert alert-success'"
-                            x-text="profileMessage?.text" style="display:none;" class="py-2 small"></div>
-
-                        <button type="submit" class="btn btn-cyber mt-2" :disabled="profileLoading">
-                            <span x-show="!profileLoading">Save Changes</span>
-                            <span x-show="profileLoading">Processing...</span>
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 import { createParser } from 'eventsource-parser';
 import { config } from '../../config/config';
-import { ChatMessage, Character as CharacterType } from '../../types';
+import { ChatMessage, Character as CharacterType, User } from '../../types';
 import { Message } from '../../models/Message';
 import { executeTool } from '../../tools/tools';
 import { aiService } from '../ai.service';
@@ -26,7 +26,7 @@ export class ToolExecutor {
     message?: string,
     imageBase64?: string,
     logger?: any,
-    userName?: string,
+    user?: User,
     usage?: any
   ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean }> {
     
@@ -87,7 +87,7 @@ export class ToolExecutor {
       }
     }
 
-    const secondRes = await aiService.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
+    const secondRes = await aiService.getAiResponse(character, history, message, imageBase64, logger, user, [assistantMsg, ...toolResultsForAi]);
     let prevLen = 0;
     let prevReasoningLen = 0;
     const secondStartLen = fullReply.length;

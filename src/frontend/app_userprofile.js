@@ -1,7 +1,8 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('userProfileApp', () => ({
+        sidebarActive: false,
         user: JSON.parse(localStorage.getItem('user') || '{}'),
-        profileForm: { display_name: '', password: '' },
+        profileForm: { email: '', display_name: '', about: '', password: '' },
         profileMessage: null,
         profileLoading: false,
 
@@ -28,7 +29,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         loadProfile() {
+            this.profileForm.email = this.user.email || '';
             this.profileForm.display_name = this.user.display_name || '';
+            this.profileForm.about = this.user.about || '';
             this.profileForm.password = '';
         },
 

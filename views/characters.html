@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +12,7 @@
     x-data="{ ...characterManager(), ...userProfileApp(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-init="init()"
     x-cloak>
 
+    <div class="wrapper">
     <nav class="navbar navbar-expand-lg navbar-cyber">
         <div class="container-fluid">
             <a class="navbar-brand navbar-brand-cyber" :href="prefix + '/chat'">AI Character Chat</a>
@@ -43,8 +43,7 @@
                         <li class="nav-item">
                             <a class="nav-link nav-link-cyber" :href="prefix + '/image-gen'">Image Gen</a>
                         </li>
-                        <li><a class="dropdown-item dropdown-item-cyber" href="#"
-                                @click.prevent="openProfileModal()">Profile Settings</a></li>
+                        <li><a class="dropdown-item dropdown-item-cyber" :href="prefix + '/profile'">Profile Settings</a></li>
                         <li>
                             <hr class="dropdown-divider border-secondary">
                         </li>
@@ -56,15 +55,14 @@
         </div>
     </nav>
 
-    <div class="wrapper">
         <div class="container py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3 class="m-0">Characters Management</h3>
             </div>
 
-            <div class="mb-2 row">
+            <div class="mb-4 row">
                 <div class="col-md-6">
-                    <button class="btn btn-cyber" @click="prepareAdd()">+ Add New Character</button>
+                    <button class="btn btn-cyber" @click="prepareAdd()">+ Add Character</button>
                 </div>
             </div>
 
@@ -185,42 +183,6 @@
                             <button type="button" class="btn btn-cyber" @click="saveCharacter()">Save Character</button>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Modal -->
-    <div class="modal fade modal-cyber" id="profileModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="updateProfile()">
-                        <div class="mb-3">
-                            <label class="form-label text-dim">Display Name</label>
-                            <input type="text" x-model="profileForm.display_name" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-dim">New Password (optional)</label>
-                            <input type="password" x-model="profileForm.password" class="form-control"
-                                placeholder="••••••••">
-                            <small class="text-muted">Leave blank to keep current password</small>
-                        </div>
-
-                        <div x-show="profileMessage"
-                            :class="profileMessage?.type === 'error' ? 'alert alert-danger' : 'alert alert-success'"
-                            x-text="profileMessage?.text" style="display:none;" class="py-2 small"></div>
-
-                        <button type="submit" class="btn btn-cyber mt-2" :disabled="profileLoading">
-                            <span x-show="!profileLoading">Save Changes</span>
-                            <span x-show="profileLoading">Processing...</span>
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>

@@ -1,5 +1,8 @@
+/*
+Cyberpunk style - Emerald and Sea Wave color scheme
+*/
+
 :root {
-    /* Deep Aurora Teal Theme */
     --bg-deep: #07151c;
     --bg-glow: radial-gradient(circle at 50% 50%, #052027 0%, #03141f 100%);
     --bg-card: rgba(16, 41, 53, 0.6);
@@ -50,11 +53,14 @@ code {
 
 .wrapper {
     max-width: 1400px;
-    display: flex;
     height: 100vh;
     width: 100%;
     min-width: 320px;
     margin: 0 auto;
+}
+
+.chat-page{
+    display: flex;
 }
 
 .card {
@@ -86,13 +92,11 @@ code {
     background: var(--accent-glow);
     color: #e0e3e5;
     border: none;
-    border-radius: 10px;
-    padding: 8px 14px;
-    box-shadow: -1px 2px 5px rgba(0, 242, 255, 0.3);
 }
 
 .btn-cyber:hover {
-    box-shadow: 0 0 10px rgba(60, 173, 179, 0.5);
+    box-shadow: -1px 2px 5px rgba(0, 242, 255, 0.3);
+    /* box-shadow: 0 0 10px rgba(60, 173, 179, 0.5); */
 }
 
 .form-control {
@@ -117,19 +121,6 @@ select.form-control option {
     border: 1px solid var(--glass-border);
     color: var(--text-dim);
 }
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 
 /* --- Sidebar --- */
 .sidebar {
@@ -293,18 +284,6 @@ select.form-control option {
 
 .message img {
     height: 150px;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 /* --- Input Area --- */
@@ -566,16 +545,11 @@ select.form-control option {
     transform: translateX(3px);
 }
 
-/* .has-navbar .wrapper {
-    height: calc(100vh - 66px);
-} */
-
 .navbar-collapse {
     display: flex !important;
     flex-basis: auto;
     justify-content: flex-end;
 }
-
 
 
 /* --- Mobile Styling --- */
@@ -592,6 +566,31 @@ select.form-control option {
     padding: 5px;
     border-radius: 6px;
     border: 1px solid var(--accent-teal);
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 

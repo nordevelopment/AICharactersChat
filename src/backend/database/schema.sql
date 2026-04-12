@@ -18,6 +18,7 @@ CREATE TABLE users (
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   display_name TEXT NOT NULL,
+  about TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

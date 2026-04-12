@@ -24,6 +24,7 @@ declare module 'fastify' {
       id: number;
       email: string;
       display_name: string;
+      about?: string;
     };
   }
 }
@@ -134,6 +135,7 @@ export async function createApp() {
   server.get('/chat', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('chat.html', config.viewsRoot));
   server.get('/characters', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('characters.html', config.viewsRoot));
   server.get('/image-gen', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('image-gen.html', config.viewsRoot));
+  server.get('/profile', { logLevel: 'warn' }, async (req, reply) => reply.sendFile('profile.html', config.viewsRoot));
 
   // Application Routes
   await server.register(authRoutes);

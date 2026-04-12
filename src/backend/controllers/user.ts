@@ -9,11 +9,20 @@ export async function userRoutes(server: FastifyInstance) {
 
     server.post('/api/profile', { preHandler: [server.authenticate] }, async (request, reply) => {
         try {
-            const { display_name, password } = request.body as any;
+            const { email, display_name, about, password } = request.body as any;
             const userId = request.session.user!.id;
 
             const updateData: any = {};
+            if (email) {
+                // Проверяем, что email не занят другим пользователем
+                const existingUser = User.findByEmail(email);
+                if (existingUser && existingUser.id !== userId) {
+                    return reply.code(400).send({ error: 'Email already exists' });
+                }
+                updateData.email = email;
+            }
             if (display_name) updateData.display_name = display_name;
+            if (about !== undefined) updateData.about = about;
             if (password) {
                 updateData.password = await bcrypt.hash(password, 10);
             }
@@ -28,7 +37,8 @@ export async function userRoutes(server: FastifyInstance) {
             const userData = {
                 id: updatedUser.id,
                 email: updatedUser.email,
-                display_name: updatedUser.display_name
+                display_name: updatedUser.display_name,
+                about: updatedUser.about
             };
             request.session.user = userData;
             await request.session.save();

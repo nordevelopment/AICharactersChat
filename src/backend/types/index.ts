@@ -36,6 +36,7 @@ export interface User {
   id: number;
   email: string;
   display_name: string;
+  about?: string;
   password?: string;
   created_at?: string;
 }

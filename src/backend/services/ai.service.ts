@@ -2,8 +2,9 @@ import axios from 'axios';
 import sharp from 'sharp';
 import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
-import { ChatMessage, Character as CharacterType } from '../types';
+import { ChatMessage, Character as CharacterType, User } from '../types';
 import { Message } from '../models/Message';
+import { User as UserModel } from '../models/User';
 import { getAvailableTools, executeTool } from '../tools/tools';
 import { memoryService } from './memory.service';
 
@@ -112,11 +113,21 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   /**
    * Core request to AI API
    */
-  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, userName?: string, extraMessages?: any[], userId?: number) {
+  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, user?: User, extraMessages?: any[]) {
     let sys = character.system_prompt || 'Helpful assistant.';
-    if (userName) sys = sys.replace(/{{user}}/g, userName);
+    if (user) sys = sys.replace(/{{user}}/g, user.display_name);
     sys = sys.replace(/{{char}}/g, character.name);
     if (character.scenario) sys += `\nScenario: ${character.scenario}`;
+    
+    // Add user context if available
+    if (user) {
+      logger?.info({ userId: user.id, display_name: user.display_name, about: user.about }, '[AI SERVICE] Adding user context');
+      sys += `\nName: ${user.display_name}`;
+      if (user.about) {
+        sys += `\nAbout: ${user.about}`;
+        logger?.info({ userAbout: user.about }, '[AI SERVICE] User about field added to prompt');
+      }
+    }
 
     // AI uses save_memory and get_memory tools autonomously - no RAG injection needed
 
@@ -147,18 +158,23 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     }
 
     if (extraMessages) {
+      logger?.info({ count: extraMessages.length }, '[AI SERVICE] Processing extra messages');
+      const cleanExtraMessages: AiMessage[] = [];
       for (const em of extraMessages) {
         const cleanExtra: AiMessage = { role: em.role, content: em.content || null };
         if (em.tool_call_id) cleanExtra.tool_call_id = em.tool_call_id;
         if (em.tool_calls) cleanExtra.tool_calls = em.tool_calls;
         if (em.name) cleanExtra.name = em.name;
 
-        logger?.info({ message: cleanExtra }, '[AI SERVICE] Extra Message');
-        aiMessages.push(cleanExtra);
+        cleanExtraMessages.push(cleanExtra);
       }
+      aiMessages.push(...cleanExtraMessages);
+      logger?.info({ messages: cleanExtraMessages }, '[AI SERVICE] Extra Messages added');
     }
+    
 
     logger?.info({ messages: aiMessages }, '[AI SERVICE] AI Request Messages');
+    logger?.info({ systemPrompt: sys }, '[AI SERVICE] System Prompt with User Context');
     const payload: any = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
@@ -210,7 +226,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     message?: string,
     imageBase64?: string,
     logger?: any,
-    userName?: string
+    user?: User
   ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; fullReply?: string }> {
 
     // 1. Check greeting message (if first message)
@@ -232,7 +248,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     // 3. Получаем актуальную историю для нейросети
     const history = Message.getHistory(character.id, userId);
 
-    const response = await this.getAiResponse(character, history, message, imageBase64, logger, userName, undefined, userId);
+    const response = await this.getAiResponse(character, history, message, imageBase64, logger, user, undefined);
     let fullReply = '';
     let reasoningText = '';
     const pendingToolCalls: any[] = [];
@@ -350,7 +366,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         toolResultsForAi.push(toolMsg);
       }
 
-      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, userName, [assistantMsg, ...toolResultsForAi], userId);
+      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, user, [assistantMsg, ...toolResultsForAi]);
       let prevLen = 0;
       let prevReasoningLen = 0;
       const secondStartLen = fullReply.length;

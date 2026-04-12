@@ -28,12 +28,21 @@ document.addEventListener('alpine:init', () => {
 
         async loadCharacters() {
             const apiBase = window.APP_CONFIG?.apiBase || '/api';
-            const res = await fetch(`${apiBase}/characters`);
-            if (res.status === 401) {
-                if (typeof this.logout === 'function') this.logout();
-                return;
+            try {
+                const res = await fetch(`${apiBase}/characters`);
+                if (res.status === 401) {
+                    if (typeof this.logout === 'function') this.logout();
+                    return;
+                }
+                if (!res.ok) {
+                    console.error('Error loading characters:', res.status, res.statusText);
+                    return;
+                }
+                this.characters = await res.json();
+                console.log('Loaded characters:', this.characters);
+            } catch (error) {
+                console.error('Network error loading characters:', error);
             }
-            this.characters = await res.json();
         },
 
         prepareAdd() {

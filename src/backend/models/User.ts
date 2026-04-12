@@ -11,9 +11,9 @@ export class User {
     }
 
     static create(data: Omit<UserType, 'id' | 'created_at'>): UserType {
-        const { email, password, display_name } = data;
-        const stmt = getDB().prepare('INSERT INTO users (email, password, display_name) VALUES (?, ?, ?)');
-        stmt.run(email, password, display_name);
+        const { email, password, display_name, about } = data;
+        const stmt = getDB().prepare('INSERT INTO users (email, password, display_name, about) VALUES (?, ?, ?, ?)');
+        stmt.run(email, password, display_name, about || null);
         return this.findByEmail(email)!;
     }
 
@@ -21,9 +21,19 @@ export class User {
         const fields: string[] = [];
         const params: any[] = [];
 
+        if (data.email !== undefined) {
+            fields.push('email = ?');
+            params.push(data.email);
+        }
+
         if (data.display_name !== undefined) {
             fields.push('display_name = ?');
             params.push(data.display_name);
+        }
+
+        if (data.about !== undefined) {
+            fields.push('about = ?');
+            params.push(data.about);
         }
 
         if (data.password !== undefined) {
