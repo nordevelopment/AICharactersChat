@@ -91,24 +91,25 @@ See **Quick Start** section below for detailed installation instructions.
 ---
 ## 🚀 **Quick Start**
 
+
 ### **1. Install Dependencies**
 
 ```bash
 npm install
 ```
 
-### **2. Setup Database**
-
-```bash
-npm run db:reset    # Create fresh database
-npm run db:seed     # Add admin user + sample characters
-```
-
-### **3. Configure Environment**
+### **2. Configure Environment**
 
 ```bash
 cp .env.example .env
 # Edit .env with your API keys
+```
+
+### **3. Setup Database**
+
+```bash
+npm run db:reset    # Create fresh database
+npm run db:seed     # Add admin user + sample characters
 ```
 
 ### **4. Launch**
@@ -130,40 +131,58 @@ npm run build && npm run start
 ### **Required Variables**
 
 ```env
+# Security
+JWT_SECRET=your_jwt_secret_at_least_32_chars_long
+NODE_ENV=development # or production
+
+
 # Server
-PORT=3000
-HOST=0.0.0.0
+PORT=3000 # Default port
+HOST=0.0.0.0 # Default host
 
 # AI Chat (OpenRouter)
 API_KEY=your_openrouter_api_key
-AI_DEFAULT_MODEL=x-ai/grok-4.1-fast
-
-# Security
-JWT_SECRET=your_jwt_secret_at_least_32_chars_long
+API_URL=https://openrouter.ai/api/v1/chat/completions
+AI_DEFAULT_MODEL=AI Model Name
+AI_EMBEDDING_MODEL=AI Embedding Model Name
 ```
 
 ### **Optional Variables**
+# Debugging
+LOGGING_DEBUG=true
+DEBUG_REQUESTS=true
+AI_DEBUG_LOGS=true
 
 ```env
-# Image Generation
-TOGETHER_API_KEY=your_together_api_key
+# Image Generation Providers
+# Provider 1: Together AI
+TOGETHER_IMAGE_API_URL=https://api.together.xyz/v1/images/generations
+TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
+
+# Provider 2: XAI
 XAI_API_KEY=your_xai_api_key
 
-# Telegram Bot
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook/telegram
-TELEGRAM_WEBHOOK_SECRET=your_webhook_secret
 
-# Access Control (leave empty for public access)
+
+# Telegram Bot Integration
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_URL=
+TELEGRAM_WEBHOOK_SECRET=
+# Optional: Private mode ids (comma-separated) - default empty (public)
 TELEGRAM_ALLOWED_USERS=
-TELEGRAM_ADMIN_USERS=123456789,987654321
+# Optional: Admin users ids (comma-separated) - default empty (no admin)
+TELEGRAM_ADMIN_USERS=
+# Optional: Features (disabled by default for security)
+TELEGRAM_ENABLE_IMAGES=false
+TELEGRAM_ENABLE_VOICE=false
+# Optional: Character settings
+TELEGRAM_DEFAULT_CHARACTER_ID=1
+# Optional: Rate limiting
+TELEGRAM_RATE_LIMIT_PER_USER=30
+TELEGRAM_RATE_LIMIT_WINDOW=60
 
-# Channel Posting (optional)
-TELEGRAM_CHANNEL=@mychannel
-
-# Debugging
-AI_DEBUG_LOGS=true
-DEBUG_REQUESTS=true
+# Telegram Channel ID (optional)
+TELEGRAM_CHANNEL=
 ```
 
 ---
