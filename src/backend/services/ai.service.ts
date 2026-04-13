@@ -185,10 +185,11 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       stream_options: config.aiStreaming ? { include_usage: true } : undefined
     };
 
-    if (character.is_agent === 1) {
-      payload.tools = getAvailableTools(true);
-      payload.tool_choice = 'auto';
-    }
+    // All characters get basic tools (including generate_image)
+    // Agents get all tools
+    const isAgent = character.is_agent === 1;
+    payload.tools = getAvailableTools(isAgent);
+    payload.tool_choice = 'auto';
 
     if (character.reasoning === 1) {
       payload.include_reasoning = true;

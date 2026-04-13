@@ -173,7 +173,7 @@ async function handlePostToTelegramChannel({ message }: ToolArgs, logger?: any):
 // Memory tool handlers
 async function handleSaveMemory({ content }: ToolArgs, logger?: any, context?: ToolContext): Promise<string> {
     if (!context?.userId || !context?.characterId) {
-        return 'Error: missing user context for saving memory';
+        return 'Error: missing context for saving memory';
     }
     if (!content) return 'Error: content is required';
 
@@ -219,7 +219,7 @@ async function handleGetMemory({ query, limit }: ToolArgs, logger?: any, context
 const TOOLS: Record<string, Tool> = {
 
     create_text_file: {
-        enabled: false,
+        enabled: true,
         handler: handleCreateTextFile,
         definition: {
             type: 'function',
@@ -239,7 +239,7 @@ const TOOLS: Record<string, Tool> = {
     },
 
     read_text_file: {
-        enabled: false,
+        enabled: true,
         handler: handleReadTextFile,
         definition: {
             type: 'function',
@@ -264,7 +264,7 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'generate_image',
-                description: 'Generate image based on prompt. No need to return the image URL. The image will display automatically',
+                description: 'Generate image based on prompt',
                 parameters: {
                     type: 'object',
                     properties: {
@@ -285,7 +285,7 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'save_memory',
-                description: 'Save info to long-term memory. Use input language.',
+                description: "Save info to long-term memory, using the user's language.",
                 parameters: {
                     type: 'object',
                     properties: {
@@ -304,12 +304,12 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'get_memory',
-                description: 'Search memories. Use SAME language as input.',
+                description: "Recall shared memories using the user's language.",
                 parameters: {
                     type: 'object',
                     properties: {
-                        query: { type: 'string', description: 'What to search for.' },
-                        limit: { type: 'number', description: 'Max results', default: 5 },
+                        query: { type: 'string', description: 'Topic or specific detail to recall from our past' },
+                        limit: { type: 'number', description: 'Max number of memories', default: 5 },
                     },
                     required: ['query'],
                 },
@@ -324,7 +324,7 @@ const TOOLS: Record<string, Tool> = {
             type: 'function',
             function: {
                 name: 'post_to_telegram_channel',
-                description: 'Post a message to the default Telegram channel. Use for sharing important updates, announcements, or content.',
+                description: 'Post a message to the Telegram channel. Use for sharing important updates, announcements, or content.',
                 parameters: {
                     type: 'object',
                     properties: {

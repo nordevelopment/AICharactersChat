@@ -60,7 +60,7 @@ async function seed() {
             first_message: 'Hey babe! Finally finished with work? I missed you today',
             scenario: 'A cozy evening at home, sitting on the sofa together.',
             temperature: 0.8,
-            max_tokens: 350,
+            max_tokens: 500,
             avatar: '',
             reasoning: 0,
             is_agent: 0 // Regular character - only image generation
