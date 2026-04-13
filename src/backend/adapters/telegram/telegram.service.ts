@@ -297,4 +297,33 @@ export class TelegramService {
       throw error;
     }
   }
+
+  /**
+   * Get file information from Telegram
+   */
+  async getFile(fileId: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/getFile`, {
+        params: { file_id: fileId }
+      });
+      return response.data.result;
+    } catch (error) {
+      console.error('[TELEGRAM SERVICE] Failed to get file info:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download file content as Buffer
+   */
+  async downloadFile(filePath: string): Promise<Buffer> {
+    try {
+      const downloadUrl = `https://api.telegram.org/file/bot${this.botToken}/${filePath}`;
+      const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+      return Buffer.from(response.data);
+    } catch (error) {
+      console.error('[TELEGRAM SERVICE] Failed to download file:', error);
+      throw error;
+    }
+  }
 }

@@ -10,7 +10,6 @@ export class Message {
                 const parsed = JSON.parse(r.content);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                     if (parsed.tool_calls || parsed.tool_call_id || parsed.name) {
-                        // Возвращаем все поля как есть, включая tool_calls, tool_call_id, name
                         return { ...r, ...parsed };
                     }
                 }

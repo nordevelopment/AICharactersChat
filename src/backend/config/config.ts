@@ -3,6 +3,7 @@ import path from 'path'
 dotenv.config();
 
 export const config = {
+  storageDir: path.join(process.cwd(), 'storage'),
   port: parseInt(process.env.PORT || '3000', 10),
   host: process.env.HOST || '0.0.0.0',
   apiUrl: process.env.API_URL || 'https://openrouter.ai/api/v1/chat/completions',
@@ -12,7 +13,7 @@ export const config = {
   aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || '',
 
   imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
-  
+
   xaiApiKey: process.env.XAI_API_KEY || '',
   xaiImageApiUrl: process.env.XAI_IMAGE_API_URL || 'https://api.x.ai/v1/images/generations',
   xaiImageModel: process.env.XAI_IMAGE_MODEL || 'grok-imagine-image',
@@ -70,7 +71,7 @@ if (missingVars.length > 0) {
   missingVars.forEach(v => console.error(`   - ${v.key}`));
   console.error('Please check your .env file.');
   console.error('='.repeat(50) + '\n');
-  
+
   if (config.nodeEnv === 'production') {
     process.exit(1);
   }

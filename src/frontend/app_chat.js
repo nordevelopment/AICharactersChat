@@ -135,7 +135,7 @@ document.addEventListener('alpine:init', () => {
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
                     
-                    // Последняя строка может быть неполной, оставляем её в буфере
+                    // Last line may be incomplete, leave it in buffer
                     buffer = lines.pop();
 
                     for (const line of lines) {
@@ -157,18 +157,25 @@ document.addEventListener('alpine:init', () => {
                                 this.typingReasoning += data.reasoning;
                                 this.scrollToBottom();
                             }
+                            if (data.imageFilePath) {
+                                // Update the last user message with the file path
+                                const lastUserMsg = this.messages.slice().reverse().find(m => m.role === 'user');
+                                if (lastUserMsg) {
+                                    lastUserMsg.imageFilePath = data.imageFilePath;
+                                }
+                            }
                         } catch (e) {
                             console.warn("Failed to parse SSE line:", trimmed, e);
                         }
                     }
                 }
 
-                // Поток завершился без явного done-события: сохраняем частичный ответ
+                // Stream ended without done event: save partial response
                 if (fullReply.trim()) {
                     pushAssistantMessage(fullReply, this.typingReasoning);
                     this.messages.push({
                         role: 'assistant',
-                        content: '⚠️ Ответ был прерван, показана частичная версия.'
+                        content: '⚠️ Error: Stream ended unexpectedly.'
                     });
                 } else {
                     this.messages.push({ role: 'assistant', content: 'Error: Stream ended unexpectedly.' });
@@ -179,7 +186,7 @@ document.addEventListener('alpine:init', () => {
                     pushAssistantMessage(fullReply, this.typingReasoning);
                     this.messages.push({
                         role: 'assistant',
-                        content: '⚠️ Ошибка соединения: показана частичная версия ответа.'
+                        content: '⚠️ Error: Could not get response.'
                     });
                 } else {
                     this.messages.push({ role: 'assistant', content: 'Error: Could not get response.' });

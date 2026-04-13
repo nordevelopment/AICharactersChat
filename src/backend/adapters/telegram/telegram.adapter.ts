@@ -123,8 +123,8 @@ export class TelegramAdapter implements ChatAdapter {
       return;
     }
 
-    // Handle regular message
-    if (text) {
+    // Handle regular message (text or photo)
+    if (text || telegramMessage.photo) {
       await this.handleTextMessage(telegramMessage);
     }
   }
@@ -413,8 +413,11 @@ Your default character is already set. Just send a message to begin!`;
   }
 
   private async handleTextMessage(telegramMessage: TelegramMessage): Promise<void> {
-    const { chat, from, text } = telegramMessage;
+    const { chat, from, text, photo, caption } = telegramMessage;
+    const messageText = text || caption || (photo ? "" : undefined);
     
+    if (messageText === undefined) return;
+
     try {
       // Get or create internal user
       const internalUser = await this.getOrCreateInternalUser(from.id);
@@ -438,16 +441,41 @@ Your default character is already set. Just send a message to begin!`;
         return;
       }
 
+      let imageBase64: string | undefined;
+      
+      // Process photo if present
+      if (photo && photo.length > 0) {
+        try {
+          // Send typing action to show we are processing image
+          await this.telegramService.sendChatAction(chat.id, 'upload_photo');
+          
+          // Get the largest photo (last in the array)
+          const largestPhoto = photo[photo.length - 1];
+          const fileInfo = await this.telegramService.getFile(largestPhoto.file_id);
+          
+          if (fileInfo && fileInfo.file_path) {
+            const buffer = await this.telegramService.downloadFile(fileInfo.file_path);
+            imageBase64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+            this.logger?.info({ userId: from.id, charId: characterId }, '[TELEGRAM ADAPTER] Image downloaded and converted to base64');
+          }
+        } catch (err: any) {
+          this.logger?.error({ error: err.message }, '[TELEGRAM ADAPTER] Image processing failed');
+          // We continue without the image if processing fails, the text might still be useful
+        }
+      }
+
       // Process message through AI service
       let response = '';
-      for await (const chunk of aiService.streamChatResponse(character, internalUser.id, text!)) {
+      for await (const chunk of aiService.streamChatResponse(character, internalUser.id, messageText, imageBase64, this.logger)) {
         if (chunk && chunk.reply) {
           response += chunk.reply;
         }
       }
       
       // Send response back to Telegram
-      await this.sendMessage(chat.id, response);
+      if (response) {
+        await this.sendMessage(chat.id, response);
+      }
 
     } catch (error) {
       this.logger?.error({ error, userId: from.id }, '[TELEGRAM ADAPTER] Failed to process message');

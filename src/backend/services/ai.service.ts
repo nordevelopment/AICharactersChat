@@ -1,5 +1,7 @@
 import axios from 'axios';
 import sharp from 'sharp';
+import fs from 'fs/promises';
+
 import { createParser } from 'eventsource-parser';
 import { config } from '../config/config';
 import { ChatMessage, Character as CharacterType, User } from '../types';
@@ -92,18 +94,30 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   /**
    * Process and resize incoming images
    */
-  async processImage(base64: string, logger?: any): Promise<string> {
+  async processImage(imageData: { base64: string, url: string }, logger?: any): Promise<{ filePath: string, base64Image: string }> {
     try {
-      const matches = base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      const data = matches ? matches[2] : base64;
+      const matches = imageData.base64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      const data = matches ? matches[2] : imageData.base64;
       const imgBuffer = Buffer.from(data, 'base64');
 
       const resized = await sharp(imgBuffer)
         .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
+        .jpeg({ quality: 85 })
         .toBuffer();
 
-      return `data:image/jpeg;base64,${resized.toString('base64')}`;
+      // Convert to base64
+      const base64Image = `data:image/jpeg;base64,${resized.toString('base64')}`;
+
+      //save image to file
+      const filename = `${Date.now()}.jpg`;
+      const fullPath = config.storageDir + `/images/${filename}`;
+      await fs.writeFile(fullPath, resized);
+
+      // Return relative path for frontend use
+      const filePath = `${config.storageDir}/images/${filename}`;
+
+      return { filePath, base64Image };
+
     } catch (err: any) {
       logger?.error({ error: err.message }, '[AI SERVICE] Image processing error');
       throw new Error('Image processing failed');
@@ -120,7 +134,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     }
     sys = sys.replace(/{{char}}/g, character.name);
     if (character.scenario) sys += `\nScenario: ${character.scenario}`;
-    
+
     // Add user identity context
     if (user) {
       sys += `\n\nUser Identity:\n- Name: ${user.display_name}`;
@@ -145,8 +159,8 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     if (imageBase64 && aiMessages.length > 0) {
       const last = aiMessages[aiMessages.length - 1];
       if (last.role === 'user' && typeof last.content === 'string') {
-        const img = await this.processImage(imageBase64, logger);
-        last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: img } }];
+        const imageData = await this.processImage({ base64: imageBase64, url: '' }, logger);
+        last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: imageData.base64Image } }];
       }
     }
 
@@ -284,7 +298,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
    */
   private async *executeToolChain(toolCalls: any[], currentReply: string, characterId: number, userId: number, logger: any): AsyncGenerator<{ reply?: string }, AiMessage[]> {
     const turnMessages: AiMessage[] = [];
-    
+
     // 1. Assistant message that initiated tools
     const assistantMsg: AiMessage = {
       role: 'assistant',
@@ -295,14 +309,14 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
         function: { name: tc.name, arguments: tc.args }
       }))
     };
-    
+
     if (userId) Message.add(characterId, userId, assistantMsg as any);
     turnMessages.push(assistantMsg);
 
     // 2. Execute each tool and record results
     for (const tc of toolCalls) {
       const result = await executeTool(tc.name, tc.args, logger, { userId, characterId });
-      
+
       let toolContentForAi = result;
       if (tc.name === 'generate_image' && !result.toLowerCase().startsWith('error')) {
         const markdown = `\n\n![Image](${result})\n\n[Full size](${result})\n\n`;
@@ -334,7 +348,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     imageBase64?: string,
     logger?: any,
     user?: User
-  ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean }> {
+  ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; imageFilePath?: string }> {
 
     // character comes from DB so id is always present
     const charId = character.id!;
@@ -345,10 +359,28 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       Message.add(charId, userId, { role: 'assistant', content: character.first_message }, 1);
     }
 
-    if (message) {
-      const userMsg: AiMessage = { role: 'user', content: message };
-      Message.add(charId, userId, userMsg as any);
-      this.summarizeIfNeeded(charId, userId, logger).catch(err => 
+    if (message !== undefined || imageBase64 !== undefined) {
+      let imageFilePath: string | undefined;
+      
+      // If image is provided, process it
+      if (imageBase64) {
+        const imageData = await this.processImage({ base64: imageBase64, url: '' }, logger);
+        imageFilePath = imageData.filePath;
+      }
+      
+      // Save message with image as Markdown if exists
+      let contentToSave = message || '';
+      if (imageFilePath) {
+        contentToSave = (message || '') + `\n\n![Image](${imageFilePath})\n`;
+      }
+      Message.add(charId, userId, { role: 'user', content: contentToSave });
+      
+      // Send image file path to frontend if available
+      if (imageFilePath) {
+        yield { imageFilePath };
+      }
+      
+      this.summarizeIfNeeded(charId, userId, logger).catch(err =>
         logger?.error(err, '[AI SERVICE] Background summarization failed')
       );
     }
@@ -362,9 +394,9 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     while (iteration < MAX_ITERATIONS) {
       iteration++;
       const response = await this.getAiResponse(character, history, logger, user, extraMessages, imageBase64);
-      
+
       const { reply, reasoning, toolCalls } = yield* this.parseAiStream(response, character, logger, cumulativeUsage);
-      
+
       if (reasoning && logger) {
         logger.info({ text: reasoning, iteration }, '[AI SERVICE] Reasoning Pass');
       }
@@ -379,7 +411,7 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       // Execute tools and accumulate context for next turn
       const turnMessages = yield* this.executeToolChain(toolCalls, reply, charId, userId, logger);
       extraMessages.push(...turnMessages);
-      
+
       // Clear initial inputs for subsequent chain steps
       message = undefined;
       imageBase64 = undefined;

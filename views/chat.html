@@ -116,7 +116,14 @@
             <div id="chat-window" x-ref="chatWindow">
                 <template x-for="(msg, index) in messages" :key="index">
                     <div class="message" :class="msg.role === 'user' ? 'user-message' : 'ai-message'">
-                        <template x-if="msg.image">
+                        <template x-if="msg.imageFilePath">
+                            <div class="mb-2 chat-img">
+                                <a :href="msg.imageFilePath" target="_blank">
+                                    <img :src="msg.imageFilePath" style="max-width: 200px; max-height: 200px; cursor: pointer;">
+                                </a>
+                            </div>
+                        </template>
+                        <template x-if="msg.image && !msg.imageFilePath">
                             <div class="mb-2 chat-img"><img :src="msg.image"></div>
                         </template>
                         <div class="content" x-html="renderMarkdown(msg.content)"></div>
