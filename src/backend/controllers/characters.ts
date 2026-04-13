@@ -27,14 +27,14 @@ export async function characterRoutes(server: FastifyInstance) {
     const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(7);
     const slug = generateSlug(body.name);
 
-    const newChar = Character.create({ ...body, slug });
+    const newChar = Character.create({ ...body, slug } as CharacterType);
     return newChar;
   });
 
   server.put('/api/characters/:slug', async (request, reply) => {
     const { slug } = request.params as { slug: string };
     const body = request.body as Partial<CharacterType>;
-    const updated = Character.update(slug, body);
+    const updated = Character.update(slug, body as CharacterType);
     return updated;
   });
 

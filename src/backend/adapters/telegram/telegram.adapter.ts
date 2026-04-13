@@ -287,7 +287,7 @@ Your default character is already set. Just send a message to begin!`;
         return;
       }
 
-      this.userCharacterMap.set(userId, character.id);
+      this.userCharacterMap.set(userId, character.id!);
       
       await this.telegramService.sendMessage({
         chat_id: chatId,
@@ -441,13 +441,8 @@ Your default character is already set. Just send a message to begin!`;
       // Process message through AI service
       let response = '';
       for await (const chunk of aiService.streamChatResponse(character, internalUser.id, text!)) {
-        // Extract text content from chunk
-        if (typeof chunk === 'string') {
-          response += chunk;
-        } else if (chunk && chunk.reply) {
+        if (chunk && chunk.reply) {
           response += chunk.reply;
-        } else if (chunk && chunk.fullReply) {
-          response += chunk.fullReply;
         }
       }
       

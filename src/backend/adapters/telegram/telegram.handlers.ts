@@ -211,7 +211,7 @@ Need more help? Just ask me anything!`;
       }
 
       // Set character for user (this would be handled by the adapter)
-      await adapter['setUserCharacter'](message.from.id, character.id);
+      await adapter['setUserCharacter'](message.from.id, character.id!);
       
       const responseMessage = `
 <b>Character switched to: ${character.name}</b>

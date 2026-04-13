@@ -1,5 +1,5 @@
 export interface Character {
-  id: number;
+  id?: number;
   slug: string;
   name: string;
   system_prompt?: string;

@@ -336,21 +336,24 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     user?: User
   ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean }> {
 
+    // character comes from DB so id is always present
+    const charId = character.id!;
+
     // Initialize history
-    const historyInDB = Message.getHistory(character.id, userId);
+    const historyInDB = Message.getHistory(charId, userId);
     if (historyInDB.length === 0 && character.first_message) {
-      Message.add(character.id, userId, { role: 'assistant', content: character.first_message }, 1);
+      Message.add(charId, userId, { role: 'assistant', content: character.first_message }, 1);
     }
 
     if (message) {
       const userMsg: AiMessage = { role: 'user', content: message };
-      Message.add(character.id, userId, userMsg as any);
-      this.summarizeIfNeeded(character.id, userId, logger).catch(err => 
+      Message.add(charId, userId, userMsg as any);
+      this.summarizeIfNeeded(charId, userId, logger).catch(err => 
         logger?.error(err, '[AI SERVICE] Background summarization failed')
       );
     }
 
-    const history = Message.getHistory(character.id, userId);
+    const history = Message.getHistory(charId, userId);
     let extraMessages: AiMessage[] = [];
     let iteration = 0;
     const MAX_ITERATIONS = 5;
@@ -368,13 +371,13 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
 
       if (toolCalls.length === 0) {
         if (reply && userId) {
-          Message.add(character.id, userId, { role: 'assistant', content: reply });
+          Message.add(charId, userId, { role: 'assistant', content: reply });
         }
         break;
       }
 
       // Execute tools and accumulate context for next turn
-      const turnMessages = yield* this.executeToolChain(toolCalls, reply, character.id, userId, logger);
+      const turnMessages = yield* this.executeToolChain(toolCalls, reply, charId, userId, logger);
       extraMessages.push(...turnMessages);
       
       // Clear initial inputs for subsequent chain steps
