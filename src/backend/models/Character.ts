@@ -14,17 +14,19 @@ export class Character {
         return getDB().prepare('SELECT * FROM characters WHERE id = ?').get(id) as CharacterType | undefined;
     }
 
-    static create(char: Partial<CharacterType>): CharacterType {
+    static create(char: CharacterType): CharacterType {
         const { slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning } = char;
         const stmt = getDB().prepare(`
             INSERT INTO characters (slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(slug, name, system_prompt || '', first_message || '', scenario || '', temperature || 0.7, max_tokens || 200, avatar || '', is_agent ? 1 : 0, reasoning ? 1 : 0);
+        stmt.run(slug, name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent ? 1 : 0, reasoning ? 1 : 0);
         return this.findBySlug(slug!)!;
     }
 
-    static update(slug: string, char: Partial<CharacterType>): CharacterType | undefined {
+    /* Expects all fields from the caller (overwrite strategy) */
+
+    static update(slug: string, char: CharacterType): CharacterType | undefined {
         const { name, system_prompt, first_message, scenario, temperature, max_tokens, avatar, is_agent, reasoning } = char;
         const stmt = getDB().prepare(`
             UPDATE characters SET name=?, system_prompt=?, first_message=?, scenario=?, temperature=?, max_tokens=?, avatar=?, is_agent=?, reasoning=? WHERE slug=?

@@ -73,8 +73,14 @@ export abstract class BaseImageProvider implements IImageProvider {
      */
     public async deleteImage(filename: string): Promise<DeleteResult> {
         try {
-            if (!filename || filename.includes('..') || filename.includes('/')) {
+            // Предотвращаем Path Traversal (поддержка / и \ для Windows)
+            if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
                 return { success: false, error: 'Invalid filename' };
+            }
+
+            // Дополнительная проверка через basename
+            if (filename !== path.basename(filename)) {
+                return { success: false, error: 'Invalid filename format' };
             }
 
             const generatedDir = path.join(process.cwd(), 'storage', 'generated');

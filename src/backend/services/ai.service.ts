@@ -113,42 +113,35 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   /**
    * Core request to AI API
    */
-  async getAiResponse(character: CharacterType, history: ChatMessage[], newUserMessage?: string, imageBase64?: string, logger?: any, user?: User, extraMessages?: any[]) {
+  async getAiResponse(character: CharacterType, history: ChatMessage[], logger?: any, user?: User, extraMessages?: AiMessage[], imageBase64?: string) {
     let sys = character.system_prompt || 'Helpful assistant.';
-    if (user) sys = sys.replace(/{{user}}/g, user.display_name);
+    if (user) {
+      sys = sys.replace(/{{user}}/g, user.display_name);
+    }
     sys = sys.replace(/{{char}}/g, character.name);
     if (character.scenario) sys += `\nScenario: ${character.scenario}`;
     
-    // Add user context if available
+    // Add user identity context
     if (user) {
-      logger?.info({ userId: user.id, display_name: user.display_name, about: user.about }, '[AI SERVICE] Adding user context');
-      sys += `\nName: ${user.display_name}`;
-      if (user.about) {
-        sys += `\nAbout: ${user.about}`;
-        logger?.info({ userAbout: user.about }, '[AI SERVICE] User about field added to prompt');
-      }
+      sys += `\n\nUser Identity:\n- Name: ${user.display_name}`;
+      if (user.about) sys += `\n- About User: ${user.about}`;
     }
-
-    // AI uses save_memory and get_memory tools autonomously - no RAG injection needed
 
     const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
     const recentHistory = history.slice(-config.maxHistoryMessages);
 
     for (const msg of recentHistory) {
-      const role = msg.role as any;
       const m: AiMessage = {
-        role,
+        role: msg.role as any,
         content: msg.content as any
       };
-
       if (msg.tool_call_id) m.tool_call_id = msg.tool_call_id;
       if (msg.tool_calls) m.tool_calls = msg.tool_calls;
       if (msg.name) m.name = msg.name;
-
-      // logger?.info({ message: m }, '[AI SERVICE] AI Message');
       aiMessages.push(m);
     }
 
+    // Attach image to the last user message if provided
     if (imageBase64 && aiMessages.length > 0) {
       const last = aiMessages[aiMessages.length - 1];
       if (last.role === 'user' && typeof last.content === 'string') {
@@ -157,24 +150,18 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       }
     }
 
-    if (extraMessages) {
-      logger?.info({ count: extraMessages.length }, '[AI SERVICE] Processing extra messages');
-      const cleanExtraMessages: AiMessage[] = [];
+    if (extraMessages && extraMessages.length > 0) {
       for (const em of extraMessages) {
-        const cleanExtra: AiMessage = { role: em.role, content: em.content || null };
-        if (em.tool_call_id) cleanExtra.tool_call_id = em.tool_call_id;
-        if (em.tool_calls) cleanExtra.tool_calls = em.tool_calls;
-        if (em.name) cleanExtra.name = em.name;
-
-        cleanExtraMessages.push(cleanExtra);
+        aiMessages.push({
+          role: em.role,
+          content: em.content,
+          tool_calls: em.tool_calls,
+          tool_call_id: em.tool_call_id,
+          name: em.name
+        });
       }
-      aiMessages.push(...cleanExtraMessages);
-      logger?.info({ messages: cleanExtraMessages }, '[AI SERVICE] Extra Messages added');
     }
-    
 
-    logger?.info({ messages: aiMessages }, '[AI SERVICE] AI Request Messages');
-    logger?.info({ systemPrompt: sys }, '[AI SERVICE] System Prompt with User Context');
     const payload: any = {
       model: config.aiDefaultModel,
       temperature: character.temperature ?? config.aiTemperature,
@@ -184,9 +171,8 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       stream_options: config.aiStreaming ? { include_usage: true } : undefined
     };
 
-    const availableTools = getAvailableTools(character.is_agent === 1);
-    if (availableTools.length > 0) {
-      payload.tools = availableTools;
+    if (character.is_agent === 1) {
+      payload.tools = getAvailableTools(true);
       payload.tool_choice = 'auto';
     }
 
@@ -195,21 +181,19 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
     }
 
     try {
-      const res = await axios.post(config.apiUrl, payload, {
+      return await axios.post(config.apiUrl, payload, {
         headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
         responseType: config.aiStreaming ? 'stream' : 'json',
         timeout: 120000
       });
-      return res;
     } catch (err: any) {
       let errorData = err.response?.data;
       if (errorData && typeof errorData.on === 'function') {
         try {
           const chunks = [];
           for await (const chunk of errorData) chunks.push(chunk);
-          errorData = Buffer.concat(chunks).toString();
-          try { errorData = JSON.parse(errorData); } catch { }
-        } catch (r) { errorData = '[Stream error]'; }
+          errorData = JSON.parse(Buffer.concat(chunks).toString());
+        } catch { errorData = { message: 'Stream error' }; }
       }
       const msg = errorData?.error?.message || errorData?.message || err.message;
       logger?.error({ status: err.response?.status, error: msg }, '[AI SERVICE] API Failure');
@@ -218,41 +202,12 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
   }
 
   /**
-   * Generator for chat response
+   * Internal helper to parse AI response stream or JSON
    */
-  async *streamChatResponse(
-    character: CharacterType,
-    userId: number,
-    message?: string,
-    imageBase64?: string,
-    logger?: any,
-    user?: User
-  ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean; fullReply?: string }> {
-
-    // 1. Check greeting message (if first message)
-    const historyInDB = Message.getHistory(character.id, userId);
-    if (historyInDB.length === 0 && character.first_message) {
-      Message.add(character.id, userId, { role: 'assistant', content: character.first_message }, 1);
-    }
-
-    // 2. Save user message to database (if it exists)
-    if (message) {
-      Message.add(character.id, userId, { role: 'user', content: message });
-      
-      // Start background tasks for history cleanup and memory extraction
-      this.summarizeIfNeeded(character.id, userId, logger).catch((err: any) => {
-        logger?.error(err, '[AI SERVICE] Background summarization failed');
-      });
-    }
-
-    // 3. Получаем актуальную историю для нейросети
-    const history = Message.getHistory(character.id, userId);
-
-    const response = await this.getAiResponse(character, history, message, imageBase64, logger, user, undefined);
-    let fullReply = '';
-    let reasoningText = '';
-    const pendingToolCalls: any[] = [];
-    let usage: any = null;
+  private async *parseAiStream(response: any, character: CharacterType, logger: any, cumulativeUsage: any): AsyncGenerator<{ reply?: string; reasoning?: string }, { reply: string; reasoning: string; toolCalls: any[] }> {
+    let reply = '';
+    let reasoning = '';
+    const toolCalls: any[] = [];
 
     if (config.aiStreaming) {
       const parser = createParser({
@@ -260,25 +215,29 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
           if (event.data === '[DONE]') return;
           try {
             const data = JSON.parse(event.data);
-            if (data.usage) usage = data.usage;
-
+            if (data.usage) {
+              cumulativeUsage.prompt_tokens += (data.usage.prompt_tokens || 0);
+              cumulativeUsage.completion_tokens += (data.usage.completion_tokens || 0);
+              cumulativeUsage.total_tokens += (data.usage.total_tokens || 0);
+            }
             const delta = data.choices?.[0]?.delta;
             if (!delta) return;
 
-            if (delta.content) fullReply += delta.content;
-            if (character.reasoning === 1 && delta.reasoning_content) reasoningText += delta.reasoning_content;
-            if (character.reasoning === 1 && delta.reasoning) reasoningText += delta.reasoning;
+            if (delta.content) reply += delta.content;
+            if (character.reasoning === 1 && (delta.reasoning_content || delta.reasoning)) {
+              reasoning += (delta.reasoning_content || delta.reasoning);
+            }
             if (delta.tool_calls) {
               for (const tc of delta.tool_calls) {
                 const idx = tc.index ?? 0;
-                if (!pendingToolCalls[idx]) pendingToolCalls[idx] = { id: '', name: '', args: '' };
-                if (tc.id) pendingToolCalls[idx].id = tc.id;
-                if (tc.function?.name) pendingToolCalls[idx].name += tc.function.name;
-                if (tc.function?.arguments) pendingToolCalls[idx].args += tc.function.arguments;
+                if (!toolCalls[idx]) toolCalls[idx] = { id: '', name: '', args: '' };
+                if (tc.id) toolCalls[idx].id = tc.id;
+                if (tc.function?.name) toolCalls[idx].name += tc.function.name;
+                if (tc.function?.arguments) toolCalls[idx].args += tc.function.arguments;
               }
             }
-          } catch {
-            logger?.error('[AI SERVICE] Error parsing SSE event', event);
+          } catch (e) {
+            logger?.error({ error: e }, '[AI SERVICE] SSE parsing error');
           }
         }
       });
@@ -287,164 +246,145 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       let prevReasoningLen = 0;
       for await (const chunk of response.data) {
         parser.feed(chunk.toString());
-        if (fullReply.length > prevLen) {
-          yield { reply: fullReply.slice(prevLen) };
-          prevLen = fullReply.length;
+        if (reply.length > prevLen) {
+          yield { reply: reply.slice(prevLen) };
+          prevLen = reply.length;
         }
-        if (reasoningText.length > prevReasoningLen) {
-          yield { reasoning: reasoningText.slice(prevReasoningLen) };
-          prevReasoningLen = reasoningText.length;
+        if (reasoning.length > prevReasoningLen) {
+          yield { reasoning: reasoning.slice(prevReasoningLen) };
+          prevReasoningLen = reasoning.length;
         }
-      }
-
-      if (character.reasoning === 1 && reasoningText && logger) {
-        logger.info({ text: reasoningText }, '[AI SERVICE] Reasoning Pass 1');
       }
     } else {
       const resData = response.data.choices?.[0]?.message;
-      usage = response.data.usage;
+      const u = response.data.usage;
+      if (u) {
+        cumulativeUsage.prompt_tokens += (u.prompt_tokens || 0);
+        cumulativeUsage.completion_tokens += (u.completion_tokens || 0);
+        cumulativeUsage.total_tokens += (u.total_tokens || 0);
+      }
       if (resData) {
-        fullReply = resData.content || '';
-        if (character.reasoning === 1) {
-          const pass1Reason = resData.reasoning_content || resData.reasoning;
-          if (pass1Reason) {
-            if (logger) logger.info({ text: pass1Reason }, '[AI SERVICE] Reasoning Pass 1');
-            yield { reasoning: pass1Reason };
-          }
-        }
+        reply = resData.content || '';
+        reasoning = resData.reasoning_content || resData.reasoning || '';
+        if (reasoning) yield { reasoning };
+        if (reply) yield { reply };
         if (resData.tool_calls) {
           resData.tool_calls.forEach((tc: any) => {
-            pendingToolCalls.push({ id: tc.id, name: tc.function.name, args: tc.function.arguments });
+            toolCalls.push({ id: tc.id, name: tc.function.name, args: tc.function.arguments });
           });
         }
       }
     }
 
-    if (pendingToolCalls.length > 0) {
-      const toolResultsRaw = await Promise.all(pendingToolCalls.map(async tc => ({
+    return { reply, reasoning, toolCalls: toolCalls.filter(Boolean) };
+  }
+
+  /**
+   * Internal helper to execute tool calls and save sequences to DB
+   */
+  private async *executeToolChain(toolCalls: any[], currentReply: string, characterId: number, userId: number, logger: any): AsyncGenerator<{ reply?: string }, AiMessage[]> {
+    const turnMessages: AiMessage[] = [];
+    
+    // 1. Assistant message that initiated tools
+    const assistantMsg: AiMessage = {
+      role: 'assistant',
+      content: currentReply || null,
+      tool_calls: toolCalls.map(tc => ({
         id: tc.id,
-        name: tc.name,
-        result: await executeTool(tc.name, tc.args, logger, { userId, characterId: character.id })
-      })));
+        type: 'function',
+        function: { name: tc.name, arguments: tc.args }
+      }))
+    };
+    
+    if (userId) Message.add(characterId, userId, assistantMsg as any);
+    turnMessages.push(assistantMsg);
 
-      const toolResultsForAi: any[] = [];
+    // 2. Execute each tool and record results
+    for (const tc of toolCalls) {
+      const result = await executeTool(tc.name, tc.args, logger, { userId, characterId });
+      
+      let toolContentForAi = result;
+      if (tc.name === 'generate_image' && !result.toLowerCase().startsWith('error')) {
+        const markdown = `\n\n![Image](${result})\n\n[Full size](${result})\n\n`;
+        yield { reply: markdown };
+        toolContentForAi = `Image generated: ${result} (Displayed to user)`;
+      }
 
-      // Preservation of the text before image for triggerMsg
-      const preImageText = fullReply;
-
-      const assistantMsg: AiMessage = {
-        role: 'assistant',
-        content: preImageText || null, // Send back what was already written
-        tool_calls: pendingToolCalls.map(tc => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.args }
-        }))
+      const toolMsg: AiMessage = {
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: toolContentForAi,
+        name: tc.name
       };
 
-      // Handle special injection and construct AI results
-      for (const tr of toolResultsRaw) {
-        let toolContent = tr.result;
-        if (tr.name === 'generate_image' && !tr.result.toLowerCase().startsWith('error')) {
-          const url = tr.result;
-          // Check if AI already included this image in the response
-          if (!fullReply.includes(url)) {
-            const markdown = `\n\n![Image](${url})\n\n[Full size](${url})\n\n`;
-            yield { reply: markdown };
-            fullReply += markdown;
-          }
-          toolContent = `Image: ${url} (Displayed to user)`;
-        }
-
-        const toolMsg = {
-          role: 'tool' as const,
-          tool_call_id: tr.id,
-          content: toolContent,
-          name: tr.name
-        };
-
-        toolResultsForAi.push(toolMsg);
-      }
-
-      const secondRes = await this.getAiResponse(character, history, message, imageBase64, logger, user, [assistantMsg, ...toolResultsForAi]);
-      let prevLen = 0;
-      let prevReasoningLen = 0;
-      const secondStartLen = fullReply.length;
-      let secondPartReply = '';
-      let secondReasoningText = '';
-
-      if (config.aiStreaming) {
-        const pParser = createParser({
-          onEvent: (event) => {
-            if (event.data === '[DONE]') return;
-            try {
-              const data = JSON.parse(event.data);
-              if (data.usage) usage = data.usage;
-              const text = data.choices?.[0]?.delta?.content;
-              const reason = data.choices?.[0]?.delta?.reasoning_content || data.choices?.[0]?.delta?.reasoning;
-              if (text) {
-                fullReply += text;
-                secondPartReply += text;
-              }
-              if (character.reasoning === 1 && reason) secondReasoningText += reason;
-            } catch (e) {
-              logger?.error({ error: e, event }, '[AI SERVICE] Error parsing second SSE event');
-            }
-          }
-        });
-        for await (const chunk of secondRes.data) {
-          pParser.feed(chunk.toString());
-          if (fullReply.length > (secondStartLen + prevLen)) {
-            yield { reply: fullReply.slice(secondStartLen + prevLen) };
-            prevLen = fullReply.length - secondStartLen;
-          }
-          if (secondReasoningText.length > prevReasoningLen) {
-            yield { reasoning: secondReasoningText.slice(prevReasoningLen) };
-            prevReasoningLen = secondReasoningText.length;
-          }
-        }
-        if (character.reasoning === 1 && secondReasoningText && logger) {
-          logger.info({ text: secondReasoningText }, '[AI SERVICE] Reasoning Pass 2');
-        }
-      } else {
-        const more = secondRes.data.choices?.[0]?.message?.content || '';
-        if (character.reasoning === 1) {
-          const moreReason = secondRes.data.choices?.[0]?.message?.reasoning_content || secondRes.data.choices?.[0]?.message?.reasoning || '';
-          if (moreReason) yield { reasoning: moreReason };
-        }
-        usage = secondRes.data.usage;
-        fullReply += more;
-        secondPartReply = more;
-        yield { reply: more };
-      }
-
-      // Сохраняем финальный ответ с изображениями в markdown
-      if (userId && fullReply) {
-        // fullReply содержит текст + markdown для изображений
-        Message.add(character.id, userId, { role: 'assistant', content: fullReply });
-      }
-
-      // Больше не возвращаем fullReply, так как он сохранен здесь
-      yield { done: true };
-    } else {
-      if (!config.aiStreaming && fullReply) {
-        yield { reply: fullReply };
-      }
-      
-      // Сохраняем финальный ответ для не-тулл случая
-      if (userId && fullReply) {
-        Message.add(character.id, userId, { role: 'assistant', content: fullReply });
-      }
-
-      yield { done: true };
+      if (userId) Message.add(characterId, userId, toolMsg as any);
+      turnMessages.push(toolMsg);
     }
 
-    if (usage && logger) {
-      logger.info({
-        usage,
-        fullReplyLength: fullReply.length,
-        model: config.aiDefaultModel
-      }, '[AI SERVICE] Final Response Statistics');
+    return turnMessages;
+  }
+
+  /**
+   * Generator for chat response (supports tool chains)
+   */
+  async *streamChatResponse(
+    character: CharacterType,
+    userId: number,
+    message?: string,
+    imageBase64?: string,
+    logger?: any,
+    user?: User
+  ): AsyncGenerator<{ reply?: string; reasoning?: string; done?: boolean }> {
+
+    // Initialize history
+    const historyInDB = Message.getHistory(character.id, userId);
+    if (historyInDB.length === 0 && character.first_message) {
+      Message.add(character.id, userId, { role: 'assistant', content: character.first_message }, 1);
+    }
+
+    if (message) {
+      const userMsg: AiMessage = { role: 'user', content: message };
+      Message.add(character.id, userId, userMsg as any);
+      this.summarizeIfNeeded(character.id, userId, logger).catch(err => 
+        logger?.error(err, '[AI SERVICE] Background summarization failed')
+      );
+    }
+
+    const history = Message.getHistory(character.id, userId);
+    let extraMessages: AiMessage[] = [];
+    let iteration = 0;
+    const MAX_ITERATIONS = 5;
+    let cumulativeUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+    while (iteration < MAX_ITERATIONS) {
+      iteration++;
+      const response = await this.getAiResponse(character, history, logger, user, extraMessages, imageBase64);
+      
+      const { reply, reasoning, toolCalls } = yield* this.parseAiStream(response, character, logger, cumulativeUsage);
+      
+      if (reasoning && logger) {
+        logger.info({ text: reasoning, iteration }, '[AI SERVICE] Reasoning Pass');
+      }
+
+      if (toolCalls.length === 0) {
+        if (reply && userId) {
+          Message.add(character.id, userId, { role: 'assistant', content: reply });
+        }
+        break;
+      }
+
+      // Execute tools and accumulate context for next turn
+      const turnMessages = yield* this.executeToolChain(toolCalls, reply, character.id, userId, logger);
+      extraMessages.push(...turnMessages);
+      
+      // Clear initial inputs for subsequent chain steps
+      message = undefined;
+      imageBase64 = undefined;
+    }
+
+    yield { done: true };
+    if (logger && cumulativeUsage.total_tokens > 0) {
+      logger.info({ usage: cumulativeUsage, model: config.aiDefaultModel }, '[AI SERVICE] All turns completed');
     }
   }
 }
