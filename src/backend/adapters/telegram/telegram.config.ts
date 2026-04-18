@@ -1,3 +1,8 @@
+/**
+ * Telegram Configuration
+ * @author Norayr Petrosyan
+ * @version 1.5.0
+ */
 import { config } from '../../config/config';
 
 export const telegramConfig = {
