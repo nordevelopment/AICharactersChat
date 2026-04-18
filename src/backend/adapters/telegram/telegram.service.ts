@@ -1,3 +1,9 @@
+/**
+ * Telegram Service
+ * Handles all Telegram API interactions
+ * @author Norayr Petrosyan
+ * @version 1.0.0
+ */
 import axios, { AxiosResponse } from 'axios';
 import { telegramConfig } from './telegram.config';
 

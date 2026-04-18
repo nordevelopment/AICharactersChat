@@ -1,3 +1,9 @@
+/**
+ * Telegram Command Handlers
+ * Handles all Telegram bot commands and user interactions
+ * @author Norayr Petrosyan
+ * @version 1.0.0
+ */
 import { TelegramMessage, TelegramUser } from './telegram.service';
 import { TelegramAdapter } from './telegram.adapter';
 

@@ -1,3 +1,9 @@
+/**
+ * Image Provider Factory
+ * @author Norayr Petrosyan
+ * @version 1.0.0
+ */
+
 import { IImageProvider } from '../interfaces/image-provider.interface';
 import { ImageProviderType } from '../interfaces/types';
 import { XAIImageProvider } from '../providers/xai.provider';
@@ -7,22 +13,22 @@ export class ImageProviderFactory {
     private static providers: Map<ImageProviderType, IImageProvider> = new Map();
 
     /**
-     * Получить экземпляр провайдера
+     * Get provider instance
      */
     static getProvider(type: ImageProviderType): IImageProvider {
-        // Если провайдер уже создан, возвращаем его (singleton)
+        // If provider already created, return it (singleton)
         if (this.providers.has(type)) {
             return this.providers.get(type)!;
         }
 
-        // Создаем новый экземпляр
+        // Create new instance
         const provider = this.createProvider(type);
         this.providers.set(type, provider);
         return provider;
     }
 
     /**
-     * Создать новый экземпляр провайдера
+     * Create new provider instance
      */
     private static createProvider(type: ImageProviderType): IImageProvider {
         switch (type) {
@@ -36,21 +42,21 @@ export class ImageProviderFactory {
     }
 
     /**
-     * Получить список доступных провайдеров
+     * Get list of available providers
      */
     static getAvailableProviders(): ImageProviderType[] {
         return ['xai', 'together'];
     }
 
     /**
-     * Проверить, доступен ли провайдер
+     * Check if provider is available
      */
     static isProviderAvailable(type: ImageProviderType): boolean {
         return this.getAvailableProviders().includes(type);
     }
 
     /**
-     * Сбросить кэш провайдеров (полезно для тестирования)
+     * Reset providers cache (useful for testing)
      */
     static resetCache(): void {
         this.providers.clear();

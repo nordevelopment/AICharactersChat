@@ -316,6 +316,9 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
 
     // 2. Execute each tool and record results
     for (const tc of toolCalls) {
+
+      yield { reply: `\n\n*🛠 Ипользую инструмент: ${tc.name}...*\n\n` };
+
       const result = await executeTool(tc.name, tc.args, logger, { userId, characterId });
 
       let toolContentForAi = result;
@@ -362,25 +365,25 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
 
     if (message !== undefined || imageBase64 !== undefined) {
       let imageFilePath: string | undefined;
-      
+
       // If image is provided, process it
       if (imageBase64) {
         const imageData = await this.processImage({ base64: imageBase64, url: '' }, logger);
         imageFilePath = imageData.filePath;
       }
-      
+
       // Save message with image as Markdown if exists
       let contentToSave = message || '';
       if (imageFilePath) {
         contentToSave = (message || '') + `\n\n![Image](${imageFilePath})\n`;
       }
       Message.add(charId, userId, { role: 'user', content: contentToSave });
-      
+
       // Send image file path to frontend if available
       if (imageFilePath) {
         yield { imageFilePath };
       }
-      
+
       this.summarizeIfNeeded(charId, userId, logger).catch(err =>
         logger?.error(err, '[AI SERVICE] Background summarization failed')
       );

@@ -1,3 +1,9 @@
+/**
+ * Main application entry point
+ * @author Norayr Petrosyan
+ * @version 1.0.0
+ */
+
 import path from 'path';
 import fs from 'fs';
 import fastify, { FastifyReply, FastifyRequest } from 'fastify';

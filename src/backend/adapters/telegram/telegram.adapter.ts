@@ -1,3 +1,10 @@
+/**
+ * Telegram Adapter for AI Character Chat
+ * Implements the ChatAdapter interface for Telegram platform
+ * 
+ * @author Norayr Petrosyan
+ * @version 1.0.0
+ */
 import { ChatAdapter, MessageOptions, PlatformUser, PlatformMessage } from '../chat.adapter.interface';
 import { ChatMessage, User, Character } from '../../types';
 import { TelegramService, TelegramMessage, TelegramUser } from './telegram.service';

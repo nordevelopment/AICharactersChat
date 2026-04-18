@@ -1,3 +1,9 @@
+/** 
+ * Server entry point
+ * @author Norayr Petrosyan
+ * @version 1.5.0
+ */
+
 import { initDB } from './database/sqlite';
 import { createApp } from './app';
 import { config } from './config/config';

@@ -1,10 +1,15 @@
-/** Tools for AI
- * Tools configuration
+/**
+ * Tools for AI
  * To enable/disable tools, change the enabled flag
+ * @author Norayr Petrosyan
+ * @version 1.0.0
  */
 
 import fs from 'fs/promises';
 import path from 'path';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
 import { ImageService } from '../services/image';
 import { ImageProviderType } from '../services/image/interfaces/types';
 import { memoryService } from '../services/memory.service';
@@ -58,16 +63,16 @@ async function ensureFilesDir(): Promise<void> {
 async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: any): Promise<string> {
     const safeFilename = String(filename || '').replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename || safeFilename.length === 0) {
-      return 'Error: invalid filename provided.';
+        return 'Error: invalid filename provided.';
     }
-    
+
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
     if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
-      return 'Error: invalid or unsafe filename.';
+        return 'Error: invalid or unsafe filename.';
     }
-    
+
     if (safeFilename.length > 255) {
-      return 'Error: filename too long (max 255 characters).';
+        return 'Error: filename too long (max 255 characters).';
     }
 
     const targetPath = path.join(FILES_DIR, safeFilename);
@@ -92,16 +97,16 @@ async function handleCreateTextFile({ filename, content }: ToolArgs, logger?: an
 async function handleReadTextFile({ filename }: ToolArgs, logger?: any): Promise<string> {
     const safeFilename = String(filename || '').replace(/[^a-zA-Z0-9_\-\.]/g, '_');
     if (!safeFilename || safeFilename.length === 0) {
-      return 'Error: invalid filename provided.';
+        return 'Error: invalid filename provided.';
     }
-    
+
     const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
     if (reservedNames.includes(safeFilename.toUpperCase()) || safeFilename.includes('..') || safeFilename.includes('/') || safeFilename.includes('\\')) {
-      return 'Error: invalid or unsafe filename.';
+        return 'Error: invalid or unsafe filename.';
     }
-    
+
     if (safeFilename.length > 255) {
-      return 'Error: filename too long (max 255 characters).';
+        return 'Error: filename too long (max 255 characters).';
     }
 
     const targetPath = path.join(FILES_DIR, safeFilename);
@@ -138,9 +143,9 @@ async function handleGenerateImage({ prompt, aspect_ratio, provider }: ToolArgs,
 // Telegram tool handlers
 async function handlePostToTelegramChannel({ message }: ToolArgs, logger?: any): Promise<string> {
     if (!message) return 'Error: message is required';
-    
+
     const targetChannel = telegramConfig.channel;
-    
+
     if (!targetChannel) {
         return 'Error: no channel configured. Please set TELEGRAM_CHANNEL in .env';
     }
@@ -156,7 +161,7 @@ async function handlePostToTelegramChannel({ message }: ToolArgs, logger?: any):
             parse_mode: 'HTML',
             disable_web_page_preview: false
         });
-        
+
         if (result.ok) {
             logger?.info({ channel: targetChannel, messageId: result.message_id }, '[TOOLS] [post_to_telegram_channel] Message posted');
             return `Message successfully posted to ${targetChannel} (message ID: ${result.message_id})`;
@@ -169,6 +174,67 @@ async function handlePostToTelegramChannel({ message }: ToolArgs, logger?: any):
         return `Error posting to channel "${targetChannel}": ${error.message}`;
     }
 }
+
+
+async function handleFetchWebData({ url, method = 'GET', data, headers }: ToolArgs, logger?: any): Promise<string> {
+    if (!url) return 'Error: URL is required';
+
+    try {
+        const response = await axios({
+            url: String(url),
+            method: String(method).toUpperCase(),
+            data: data,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Node.js AI Agent)',
+                ...(typeof headers === 'string' ? JSON.parse(headers) : (headers || {}))
+            },
+            timeout: 15000
+        });
+
+        // Если пришел JSON (например, из API), отдаем как есть
+        if (typeof response.data === 'object') {
+            return JSON.stringify(response.data, null, 2);
+        }
+
+        // Если пришел HTML, пускаем в ход Cheerio
+        if (typeof response.data === 'string' && response.data.includes('<html')) {
+            const $ = cheerio.load(response.data);
+
+            // 1. Выкидываем весь мусор, который путает ИИ
+            $('script, style, nav, footer, header, noscript, iframe, ad').remove();
+
+            // 2. Достаем только важные куски
+            // Берем заголовок страницы и основной текст из article или main
+            const title = $('title').text().trim();
+            let bodyText = $('article, main, .content, #content').text().trim();
+
+            // Если не нашли через селекторы контента, берем просто весь body
+            if (!bodyText) {
+                bodyText = $('body').text().trim();
+            }
+
+            // 3. Чистим лишние пробелы и переносы
+            const cleanContent = bodyText
+                .replace(/\s\s+/g, ' ')
+                .replace(/\n\s*\n/g, '\n')
+                .substring(0, 12000); // Чуть увеличил лимит
+
+            logger?.info({ url, length: cleanContent.length }, '[TOOLS] [fetch_web_data] HTML Parsed');
+            return `Title: ${title}\n\nContent:\n${cleanContent}`;
+        }
+
+        return String(response.data).substring(0, 10000);
+
+    } catch (error: any) {
+        const errorMsg = error.response
+            ? `Status: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+            : error.message;
+        logger?.error({ url, error: errorMsg }, '[TOOLS] [fetch_web_data] Failed');
+        return `Error fetching "${url}": ${errorMsg}`;
+    }
+}
+
+
 
 // Memory tool handlers
 async function handleSaveMemory({ content }: ToolArgs, logger?: any, context?: ToolContext): Promise<string> {
@@ -195,13 +261,13 @@ async function handleGetMemory({ query, limit }: ToolArgs, logger?: any, context
 
     try {
         const memories = await memoryService.searchMemories(
-            context.userId, 
-            context.characterId, 
-            String(query), 
-            Number(limit) || 5, 
+            context.userId,
+            context.characterId,
+            String(query),
+            Number(limit) || 5,
             logger
         );
-        
+
         if (memories.length === 0) {
             return 'No memories found matching the query.';
         }
@@ -335,7 +401,33 @@ const TOOLS: Record<string, Tool> = {
             },
         },
     },
+
+
+    fetch_web_data: {
+        enabled: true,
+        handler: handleFetchWebData,
+        definition: {
+            type: 'function',
+            function: {
+                name: 'fetch_web_data',
+                description: 'Fetch data from a URL or API. Can be used to read documentation, get web content, or call external APIs.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        url: { type: 'string', description: 'The full URL to fetch (e.g., https://api.example.com/data or https://docs.js.org)' },
+                        method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'], default: 'GET', description: 'HTTP method' },
+                        data: { type: 'string', description: 'JSON string for request body (if POST or PUT)' },
+                        headers: { type: 'object', description: 'Optional HTTP headers as a JSON object' }
+                    },
+                    required: ['url'],
+                },
+            },
+        },
+    },
+
 };
+
+
 
 export const ALL_TOOLS: ToolDefinition[] = Object.values(TOOLS)
     .filter(t => t.enabled)

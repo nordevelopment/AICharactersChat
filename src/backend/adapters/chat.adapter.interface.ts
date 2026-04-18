@@ -1,9 +1,12 @@
-import { ChatMessage, User, Character } from '../types';
-
-/**
+/* 
  * Base interface for all chat platform adapters
  * Implements the Adapter pattern for different messaging platforms
+ * @author Norayr Petrosyan
+ * @version 1.0.0
  */
+
+import { ChatMessage, User, Character } from '../types';
+
 export interface ChatAdapter {
   /**
    * Platform identifier (e.g., 'telegram', 'whatsapp', 'discord')

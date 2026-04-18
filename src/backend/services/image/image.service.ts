@@ -1,16 +1,19 @@
+/**
+ * Image service for generating and editing images
+ * Supports multiple providers through factory
+ * @author Norayr Petrosyan
+ * @version 1.5.0
+ */
+
 import { ImageProviderFactory } from './factory/image-provider.factory';
 import { ImageProviderType, GenerateOptions, EditOptions, ImageResult, DeleteResult } from './interfaces/types';
 import { IImageProvider } from './interfaces/image-provider.interface';
 
-/**
- * Основной сервис для работы с изображениями
- * Поддерживает множественные провайдеры через фабрику
- */
 export class ImageService {
     private defaultProvider: ImageProviderType = 'xai';
 
     /**
-     * Установить провайдер по умолчанию
+     * Set default provider
      */
     setDefaultProvider(provider: ImageProviderType): void {
         if (!ImageProviderFactory.isProviderAvailable(provider)) {
@@ -20,14 +23,14 @@ export class ImageService {
     }
 
     /**
-     * Получить провайдер по умолчанию
+     * Get default provider
      */
     private getDefaultProvider(): IImageProvider {
         return ImageProviderFactory.getProvider(this.defaultProvider);
     }
 
     /**
-     * Получить конкретный провайдер
+     * Get specific provider
      */
     getProvider(provider?: ImageProviderType): IImageProvider {
         if (provider) {
@@ -40,7 +43,7 @@ export class ImageService {
     }
 
     /**
-     * Генерация изображения из текста
+     * Generate image from text
      */
     async generate(
         prompt: string, 
@@ -52,7 +55,7 @@ export class ImageService {
     }
 
     /**
-     * Редактирование изображения с референсами
+     * Edit image with references
      */
     async editImage(
         prompt: string, 
@@ -64,7 +67,7 @@ export class ImageService {
     }
 
     /**
-     * Удаление изображения
+     * Delete image
      */
     async deleteImage(
         filename: string, 
@@ -83,14 +86,14 @@ export class ImageService {
     }
 
     /**
-     * Получить список доступных провайдеров
+     * Get list of available providers
      */
     getAvailableProviders(): ImageProviderType[] {
         return ImageProviderFactory.getAvailableProviders();
     }
 
     /**
-     * Получить текущий провайдер по умолчанию
+     * Get current default provider
      */
     getCurrentDefaultProvider(): ImageProviderType {
         return this.defaultProvider;

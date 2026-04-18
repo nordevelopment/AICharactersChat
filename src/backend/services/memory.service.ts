@@ -1,3 +1,9 @@
+/**
+ * Memory Service
+ * @author Norayr Petrosyan
+ * @version 1.5.0
+ */
+
 import axios from 'axios';
 import { config } from '../config/config';
 import { getDB } from '../database/sqlite';
