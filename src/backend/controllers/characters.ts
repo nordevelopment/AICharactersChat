@@ -12,6 +12,8 @@ import sharp from 'sharp';
 
 
 
+import { Lorebook } from '../models/Lorebook.js';
+
 export async function characterRoutes(server: FastifyInstance) {
   // Защищаем управление персонажами
   server.addHook('preHandler', server.authenticate);
@@ -50,6 +52,26 @@ export async function characterRoutes(server: FastifyInstance) {
     return { success: true };
   });
 
+  // Get bound lorebooks for character
+  server.get('/api/characters/:id/lorebooks', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const charId = parseInt(id, 10);
+    if (isNaN(charId)) return reply.code(400).send({ error: 'Invalid character ID' });
+    return Lorebook.getCharacterLorebookIds(charId);
+  });
+
+  // Update bound lorebooks for character
+  server.post('/api/characters/:id/lorebooks', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { lorebook_ids } = request.body as { lorebook_ids?: number[] };
+    const charId = parseInt(id, 10);
+    if (isNaN(charId)) return reply.code(400).send({ error: 'Invalid character ID' });
+
+    const lbIds = Array.isArray(lorebook_ids) ? lorebook_ids.map(n => Number(n)).filter(n => !isNaN(n)) : [];
+    Lorebook.bindToCharacter(charId, lbIds);
+
+    return { success: true, lorebook_ids: lbIds };
+  });
 
   server.post('/api/characters/upload-avatar', async (request, reply) => {
     const data = await request.file();

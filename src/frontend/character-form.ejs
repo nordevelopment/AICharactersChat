@@ -107,6 +107,25 @@
                                     <span class="cyber-checkbox__label">Enable Deep Reasoning</span>
                                 </label>
                             </div>
+                        <div class="cyber-field cyber-mb-md">
+                            <label class="cyber-field__label">Attached Lorebooks (World Info)</label>
+                            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--cyber-cyan-800, #334155); padding: 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                <template x-for="lb in availableLorebooks" :key="lb.id">
+                                    <label class="cyber-checkbox">
+                                        <input type="checkbox" :value="lb.id" x-model="selectedLorebookIds">
+                                        <span class="cyber-checkbox__box"></span>
+                                        <span class="cyber-checkbox__label">
+                                            <strong x-text="lb.name"></strong>
+                                            <span class="cyber-text-secondary" style="font-size: 0.85rem;" x-text="' (' + (lb.entry_count || 0) + ' entries)'"></span>
+                                        </span>
+                                    </label>
+                                </template>
+                                <template x-if="availableLorebooks.length === 0">
+                                    <div class="cyber-text-secondary" style="font-size: 0.85rem;">
+                                        No lorebooks created yet. Go to <a :href="prefix + '/lorebooks'" style="color: var(--cyber-cyan-400, #38bdf8);">Lorebooks Manager</a> to create one.
+                                    </div>
+                                </template>
+                            </div>
                         </div>
 
                         <div class="cyber-flex cyber-gap-sm">

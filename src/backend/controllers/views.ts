@@ -57,4 +57,12 @@ export async function viewsRoutes(server: FastifyInstance) {
         }
         return reply.view('profile.ejs');
     });
+
+    // Lorebooks management page
+    server.get('/lorebooks', async (request, reply) => {
+        if (!request.session.user) {
+            return reply.redirect('/');
+        }
+        return reply.view('lorebooks.ejs');
+    });
 }

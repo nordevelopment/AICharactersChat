@@ -19,8 +19,8 @@ import { authRoutes } from './controllers/auth.js';
 import { userRoutes } from './controllers/user.js';
 import { imageRoutes } from './controllers/image.js';
 import { viewsRoutes } from './controllers/views.js';
+import { lorebookRoutes } from './controllers/lorebooks.js';
 import { initDB } from './database/sqlite.js';
-
 
 declare module 'fastify' {
   export interface FastifyInstance {
@@ -37,7 +37,6 @@ declare module 'fastify' {
 }
 
 export async function createApp() {
-
   initDB();
 
   const storagePath = path.join(__dirname, '../../storage');
@@ -59,7 +58,6 @@ export async function createApp() {
     disableRequestLogging: true,
     logger: {
       level: config.debugAi ? 'info' : 'warn',
-      // Теперь pino-pretty включается только если LOGING_DEBUG=true в .env
       transport: config.loggingDebug ? {
         target: 'pino-pretty',
         options: {
@@ -72,9 +70,7 @@ export async function createApp() {
   });
 
   await server.register(fastifyMultipart);
-
   await server.register(FastifySSEPlugin);
-
   await server.register(fastifyCookie);
   await server.register(fastifySession, {
     secret: config.jwtSecret,
@@ -140,7 +136,6 @@ export async function createApp() {
     logLevel: 'warn'
   });
 
-
   await server.register(fastifyStatic, {
     root: path.join(__dirname, '../../storage/sandbox'),
     prefix: '/storage/sandbox/',
@@ -153,6 +148,7 @@ export async function createApp() {
   await server.register(authRoutes);
   await server.register(userRoutes);
   await server.register(characterRoutes);
+  await server.register(lorebookRoutes);
 
   await server.register(chatRoutes);
   await server.register(imageRoutes);

@@ -15,15 +15,28 @@ document.addEventListener('alpine:init', () => {
         avatarFile: null,
         formInvalid: false,
         saveLoading: false,
+        availableLorebooks: [],
+        selectedLorebookIds: [],
 
         async init() {
             if (typeof this.checkAuth === 'function') {
                 if (!(await this.checkAuth())) return;
             }
 
+            const apiBase = window.APP_CONFIG?.apiBase || '/api';
+
+            // Load available user lorebooks
+            try {
+                const lbsRes = await fetch(`${apiBase}/lorebooks`);
+                if (lbsRes.ok) {
+                    this.availableLorebooks = await lbsRes.json();
+                }
+            } catch (e) {
+                console.error('Error fetching lorebooks:', e);
+            }
+
             const slug = window.CHARACTER_EDIT_SLUG;
             if (slug) {
-                const apiBase = window.APP_CONFIG?.apiBase || '/api';
                 try {
                     const res = await fetch(`${apiBase}/characters/${slug}`);
                     if (res.ok) {
@@ -31,6 +44,13 @@ document.addEventListener('alpine:init', () => {
                         this.form = { ...char };
                         this.form.is_agent = char.is_agent === 1;
                         this.form.reasoning = char.reasoning === 1;
+
+                        if (char.id) {
+                            const boundRes = await fetch(`${apiBase}/characters/${char.id}/lorebooks`);
+                            if (boundRes.ok) {
+                                this.selectedLorebookIds = await boundRes.json();
+                            }
+                        }
                     } else {
                         console.error('Failed to load character matrix:', res.statusText);
                     }
@@ -83,7 +103,20 @@ document.addEventListener('alpine:init', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
+
                 if (res.ok) {
+                    const savedChar = await res.json();
+                    const charId = savedChar.id || this.form.id;
+
+                    if (charId) {
+                        // Save attached lorebook bindings
+                        await fetch(`${apiBase}/characters/${charId}/lorebooks`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lorebook_ids: this.selectedLorebookIds.map(Number) })
+                        });
+                    }
+
                     const appPrefix = window.APP_CONFIG?.appPrefix || '';
                     window.location.href = appPrefix + '/characters';
                 } else {

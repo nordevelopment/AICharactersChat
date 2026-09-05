@@ -11,6 +11,8 @@ import type { UserType } from '../models/User.js';
 import type { CharacterType } from '../models/Character.js';
 import { getAvailableTools, executeTool } from '../tools/tools.js';
 import { memoryService } from './memory.service.js';
+import { Lorebook } from '../models/Lorebook.js';
+import { matchLorebookEntries, buildLorebookPromptBlock } from './lorebook-matcher.service.js';
 
 /**
  * OpenAI-compatible message types
@@ -62,8 +64,7 @@ export class AiService {
     if (messages.length === 0) return;
     try {
       const historyText = messages.map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : '[Media]'}`).join('\n');
-      const prompt = `Extract key short facts events from this dialogue. 
-Return only a bulleted list of events, or "NONE" if no new events found. Use the same language as the dialogue.`;
+      const prompt = `Extract key short facts events from this dialogue. Return only a bulleted list of events, or "NONE" if no new events found. Use the same language as the dialogue.`;
 
       const res = await axios.post(config.apiUrl, {
         model: config.aiDefaultModel,
@@ -143,8 +144,27 @@ Return only a bulleted list of events, or "NONE" if no new events found. Use the
       if (user.about) sys += `\n- About User: ${user.about}`;
     }
 
-    const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
     const recentHistory = history.slice(-config.maxHistoryMessages);
+
+    // Match and inject Lorebooks (World Info)
+    if (character.id) {
+      try {
+        const lbEntries = Lorebook.getEntriesForCharacter(character.id);
+        if (lbEntries.length > 0) {
+          const recentHistoryText = recentHistory.map(m => typeof m.content === 'string' ? m.content : '').join('\n');
+          const matchedLb = matchLorebookEntries(recentHistoryText, lbEntries);
+          if (matchedLb.length > 0) {
+            const lbBlock = buildLorebookPromptBlock(matchedLb);
+            sys += lbBlock;
+            logger?.info({ characterId: character.id, count: matchedLb.length }, '[AI SERVICE] Lorebook entries matched and injected');
+          }
+        }
+      } catch (err: any) {
+        logger?.error({ error: err.message }, '[AI SERVICE] Lorebook matching failed');
+      }
+    }
+
+    const aiMessages: AiMessage[] = [{ role: 'system', content: sys }];
 
     for (const msg of recentHistory) {
       const m: AiMessage = {

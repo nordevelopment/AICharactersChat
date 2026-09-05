@@ -29,6 +29,13 @@ See **Quick Start** section below for detailed installation instructions.
 - **Explicit Commands** - Manually save facts using "Remember: [fact]" or "Запомни: [факт]"
 - **Infinite Context** - Never truly "forgets" important details, even after history cleanup
 
+### 📚 **Lorebooks & World Info**
+
+- **Dynamic Keyword Triggering** - Lore entries inject into system context *only* when trigger keywords appear in the conversation window.
+- **Modular Character Bindings** - Bind one or multiple Lorebooks to any character card.
+- **SillyTavern & Chub Interoperability** - Full 1-click import & export for standard SillyTavern / Chub.ai World Info JSON files.
+- **Token & Cost Efficiency** - Minimizes prompt token overhead while providing massive background world knowledge.
+
 ### 💬 **Smart Chat System**
 
 - **Real-time Streaming** - Watch AI responses appear word by word with SSE
@@ -258,6 +265,7 @@ TELEGRAM_RATE_LIMIT_WINDOW=60
 | **`/`**           | Login & Register    | Session-based authentication           |
 | **`/chat`**       | Main Chat Interface | Real-time SSE streaming, image uploads |
 | **`/characters`** | Character Dashboard | Full CRUD management, avatars          |
+| **`/lorebooks`**  | Lorebooks Manager   | World info, triggers, SillyTavern JSON import/export |
 | **`/image-gen`**  | Image Generator     | FLUX model, aspect ratios, controls    |
 
 ---
@@ -299,10 +307,10 @@ TELEGRAM_DEFAULT_CHANNEL=@mychannel
 
 ## 🧠 **Technical Deep Dive**
 
-### **AI Chat Engine**
+### **AI Chat Engine & Lorebook Context Injection**
 
 ```typescript
-// Memory Architecture
+User Prompt + Conversation History → Lorebook Keyword Engine → Injected [World & Setting Lore]
 User Message → Vector Search (sqlite-vec) → Relevant Facts → System Prompt Injection
 Context Builder → Fact Extraction → Vector Storage → History Cleanup
 ```
@@ -317,9 +325,12 @@ Aspect Ratio → Pixel Optimization → Sharp Processing → Static Serving
 ### **Database Schema**
 
 ```sql
-users        → Authentication & profiles
-characters   → AI personalities & settings
-messages     → Chat history with metadata
+users              → Authentication & profiles
+characters         → AI personalities & settings
+messages           → Chat history with metadata
+lorebooks          → World info collections
+lorebook_entries   → Keyword-triggered lore facts & rules
+character_lorebooks→ Junction table binding lorebooks to characters
 ```
 
 ---

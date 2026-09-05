@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorebooks Manager - OpenRoleplayChat</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Orbitron:wght@400..900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/public/cybercore.css">
+    <link rel="stylesheet" href="/public/styles.css?v=<%= version %>">
+
+    <script src="/public/config.js"></script>
+</head>
+
+<body class="has-navbar"
+    x-data="{ ...lorebookApp(), ...userProfileApp(), prefix: window.APP_CONFIG?.appPrefix || '' }" x-init="init()"
+    x-cloak>
+
+    <div class="wrapper cyber-scanlines cyber-scanlines--scroll cyber-scanlines--fine"
+        style="height: 100vh; overflow-y: auto;">
+
+        <!-- Navbar -->
+        <%- include('head_nav.ejs') %>
+
+        <div style="padding: var(--space-md);">
+            <div class="cyber-flex cyber-justify-between cyber-items-center cyber-mb-md">
+                <div>
+                    <h2 class="m-0 cyber-text-glow" style="font-size: var(--text-2xl);">World Lorebooks</h2>
+                    <p class="cyber-text-secondary m-0" style="font-size: 0.9rem;">Manage background lore, world facts, and keyword-triggered rules for AI characters.</p>
+                </div>
+                <div class="cyber-flex cyber-gap-sm">
+                    <button class="cyber-btn cyber-btn--ghost" @click="openImportModal()">📥 Import JSON</button>
+                    <button class="cyber-btn cyber-btn--filled cyber-btn--cyan" @click="openCreateLorebookModal()">+ New Lorebook</button>
+                </div>
+            </div>
+
+            <div class="cyber-grid--3 cyber-gap-md" style="grid-template-columns: 320px 1fr;">
+                
+                <!-- Lorebooks Left List Column -->
+                <div class="cyber-card" style="padding: var(--space-sm);">
+                    <h4 class="cyber-card__title cyber-mb-sm" style="font-size: 1.1rem;">Lorebook Archives</h4>
+                    <div style="display: flex; flex-direction: column; gap: var(--space-xs); max-height: calc(100vh - 200px); overflow-y: auto;">
+                        <template x-for="lb in lorebooks" :key="lb.id">
+                            <div class="character-item" 
+                                 :class="{ 'active': activeLorebook?.id === lb.id }"
+                                 @click="selectLorebook(lb)"
+                                 style="padding: 10px 12px; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 600;" x-text="lb.name"></div>
+                                    <div class="cyber-text-secondary" style="font-size: 0.8rem;" x-text="(lb.entry_count || 0) + ' entries'"></div>
+                                </div>
+                                <div class="cyber-flex cyber-gap-xs" @click.stop>
+                                    <button class="cyber-btn cyber-btn--sm cyber-btn--ghost" title="Export JSON" @click="exportLorebook(lb.id)">📥</button>
+                                    <button class="cyber-btn cyber-btn--sm cyber-btn--magenta" title="Delete" @click="deleteLorebook(lb.id)">✕</button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="lorebooks.length === 0">
+                            <div class="cyber-text-secondary text-center py-4" style="font-size: 0.9rem;">
+                                No lorebooks created yet. Click "+ New Lorebook" or "Import JSON" to add one.
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Active Lorebook Entries Detail Column -->
+                <div class="cyber-card">
+                    <template x-if="!activeLorebook">
+                        <div class="cyber-flex cyber-flex-col cyber-items-center cyber-justify-center" style="min-height: 350px;">
+                            <div class="cyber-text-secondary" style="font-size: 1.1rem;">Select or create a Lorebook from the left panel to manage its entries.</div>
+                        </div>
+                    </template>
+
+                    <template x-if="activeLorebook">
+                        <div>
+                            <!-- Lorebook Header Info -->
+                            <div class="cyber-flex cyber-justify-between cyber-items-center cyber-mb-md pb-3" style="border-bottom: 1px solid var(--cyber-cyan-900, #1e293b);">
+                                <div>
+                                    <h3 class="m-0 cyber-text-glow" x-text="activeLorebook.name"></h3>
+                                    <div class="cyber-text-secondary" style="font-size: 0.9rem;" x-text="activeLorebook.description || 'No description provided.'"></div>
+                                </div>
+                                <div class="cyber-flex cyber-gap-sm">
+                                    <button class="cyber-btn cyber-btn--sm cyber-btn--ghost" @click="openEditLorebookModal(activeLorebook)">Edit Details</button>
+                                    <button class="cyber-btn cyber-btn--sm cyber-btn--filled cyber-btn--cyan" @click="openCreateEntryModal()">+ Add Entry</button>
+                                </div>
+                            </div>
+
+                            <!-- Entries List -->
+                            <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                                <template x-for="entry in activeLorebook.entries" :key="entry.id">
+                                    <div class="cyber-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--cyber-cyan-800, #334155); padding: 12px 16px;">
+                                        <div class="cyber-flex cyber-justify-between cyber-items-center cyber-mb-xs">
+                                            <div class="cyber-flex cyber-items-center cyber-gap-sm">
+                                                <span class="cyber-badge" :class="entry.is_active ? 'cyber-badge--cyan' : 'cyber-badge--gray'" x-text="entry.is_active ? 'Active' : 'Disabled'"></span>
+                                                <span style="font-weight: 600; font-family: monospace;" x-text="entry.comment || 'Entry #' + entry.id"></span>
+                                            </div>
+                                            <div class="cyber-flex cyber-gap-xs">
+                                                <button class="cyber-btn cyber-btn--sm cyber-btn--ghost" @click="openEditEntryModal(entry)">Edit</button>
+                                                <button class="cyber-btn cyber-btn--sm cyber-btn--magenta" @click="deleteEntry(entry.id)">Delete</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Keywords Badges -->
+                                        <div class="cyber-flex cyber-gap-xs cyber-mb-xs" style="flex-wrap: wrap;">
+                                            <span style="font-size: 0.8rem;" class="cyber-text-secondary">Triggers:</span>
+                                            <template x-for="key in (entry.keys || [])" :key="key">
+                                                <span style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.4); color: #38bdf8; font-size: 0.8rem; padding: 1px 6px; border-radius: 3px; font-family: monospace;" x-text="key"></span>
+                                            </template>
+                                        </div>
+
+                                        <!-- Content Preview -->
+                                        <div style="white-space: pre-wrap; font-size: 0.9rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px;" x-text="entry.content"></div>
+                                    </div>
+                                </template>
+
+                                <template x-if="!activeLorebook.entries || activeLorebook.entries.length === 0">
+                                    <div class="cyber-text-secondary text-center py-5">
+                                        No entries in this lorebook yet. Click "+ Add Entry" to create facts or world rules.
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Lorebook Form (Create/Edit) -->
+    <div class="cyber-modal-backdrop" x-show="showLorebookModal" x-transition x-cloak style="position: fixed; inset:0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="cyber-card" style="width: 100%; max-width: 500px; padding: var(--space-md);" @click.away="showLorebookModal = false">
+            <h3 class="cyber-card__title cyber-mb-md" x-text="lorebookForm.id ? 'Edit Lorebook' : 'Create New Lorebook'"></h3>
+            <form @submit.prevent="saveLorebook()">
+                <div class="cyber-field cyber-mb-sm">
+                    <label class="cyber-field__label">Lorebook Name *</label>
+                    <input type="text" class="cyber-input" x-model="lorebookForm.name" required placeholder="e.g. World of Cyberpunk 2077">
+                </div>
+                <div class="cyber-field cyber-mb-md">
+                    <label class="cyber-field__label">Description</label>
+                    <textarea class="cyber-textarea" x-model="lorebookForm.description" rows="3" placeholder="Brief summary of setting, universe, or topic..."></textarea>
+                </div>
+                <div class="cyber-flex cyber-justify-end cyber-gap-sm">
+                    <button type="button" class="cyber-btn cyber-btn--ghost" @click="showLorebookModal = false">Cancel</button>
+                    <button type="submit" class="cyber-btn cyber-btn--filled cyber-btn--cyan">Save Lorebook</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Entry Form (Create/Edit) -->
+    <div class="cyber-modal-backdrop" x-show="showEntryModal" x-transition x-cloak style="position: fixed; inset:0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="cyber-card" style="width: 100%; max-width: 600px; padding: var(--space-md);" @click.away="showEntryModal = false">
+            <h3 class="cyber-card__title cyber-mb-md" x-text="entryForm.id ? 'Edit Entry' : 'Add Lorebook Entry'"></h3>
+            <form @submit.prevent="saveEntry()">
+                <div class="cyber-field cyber-mb-sm">
+                    <label class="cyber-field__label">Title / Comment (Optional)</label>
+                    <input type="text" class="cyber-input" x-model="entryForm.comment" placeholder="e.g. Sword of Light, Arasaka Corp">
+                </div>
+                <div class="cyber-field cyber-mb-sm">
+                    <label class="cyber-field__label">Keywords / Triggers (comma separated) *</label>
+                    <input type="text" class="cyber-input" x-model="entryForm.keysInput" required placeholder="e.g. arasaka, arasaka tower, saburo">
+                    <div class="cyber-text-secondary" style="font-size: 0.75rem; margin-top: 2px;">When any of these keywords appear in the chat, this entry will be injected into character context.</div>
+                </div>
+                <div class="cyber-field cyber-mb-sm">
+                    <label class="cyber-field__label">Content / Lore Facts *</label>
+                    <textarea class="cyber-textarea" x-model="entryForm.content" rows="5" required placeholder="Detailed information, rules, or secrets about this subject..."></textarea>
+                </div>
+                <div class="cyber-field cyber-mb-md">
+                    <label class="cyber-checkbox">
+                        <input type="checkbox" x-model="entryForm.is_active">
+                        <span class="cyber-checkbox__box"></span>
+                        <span class="cyber-checkbox__label">Active / Enabled</span>
+                    </label>
+                </div>
+                <div class="cyber-flex cyber-justify-end cyber-gap-sm">
+                    <button type="button" class="cyber-btn cyber-btn--ghost" @click="showEntryModal = false">Cancel</button>
+                    <button type="submit" class="cyber-btn cyber-btn--filled cyber-btn--cyan">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Import JSON -->
+    <div class="cyber-modal-backdrop" x-show="showImportModal" x-transition x-cloak style="position: fixed; inset:0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="cyber-card" style="width: 100%; max-width: 500px; padding: var(--space-md);" @click.away="showImportModal = false">
+            <h3 class="cyber-card__title cyber-mb-md">Import SillyTavern / Chub Lorebook JSON</h3>
+            <form @submit.prevent="importLorebookFile()">
+                <div class="cyber-field cyber-mb-md">
+                    <label class="cyber-field__label">Select JSON file</label>
+                    <input type="file" id="importJsonFileInput" class="cyber-input" accept=".json" required>
+                </div>
+                <div class="cyber-flex cyber-justify-end cyber-gap-sm">
+                    <button type="button" class="cyber-btn cyber-btn--ghost" @click="showImportModal = false">Cancel</button>
+                    <button type="submit" class="cyber-btn cyber-btn--filled cyber-btn--cyan" :disabled="importLoading">
+                        <span x-show="!importLoading">Import Lorebook</span>
+                        <span x-show="importLoading">Importing...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/public/app_userprofile.js?v=<%= version %>"></script>
+    <script src="/public/app_lorebooks.js?v=<%= version %>"></script>
+</body>
+
+</html>

@@ -12,6 +12,7 @@
     <ul class="cyber-nav__links">
         <li><a :href="prefix + '/chat'" class="cyber-nav__link" :class="{ 'cyber-nav__link--active': window.location.pathname === (prefix + '/chat') }">Chat</a></li>
         <li><a :href="prefix + '/characters'" class="cyber-nav__link" :class="{ 'cyber-nav__link--active': window.location.pathname.startsWith(prefix + '/characters') }">Characters</a></li>
+        <li><a :href="prefix + '/lorebooks'" class="cyber-nav__link" :class="{ 'cyber-nav__link--active': window.location.pathname.startsWith(prefix + '/lorebooks') }">Lorebooks</a></li>
         <li><a :href="prefix + '/image-gen'" class="cyber-nav__link" :class="{ 'cyber-nav__link--active': window.location.pathname.startsWith(prefix + '/image-gen') }">Image Gen</a></li>
     </ul>
 
