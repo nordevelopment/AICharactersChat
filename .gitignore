@@ -3,3 +3,4 @@ dist
 .env
 database.*
 storage/*
+config.json

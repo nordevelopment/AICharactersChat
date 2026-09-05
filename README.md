@@ -1,519 +1,74 @@
 # Open Roleplay Chat (ORC) 🤖🎭
 
-> **The Lightweight, Open-Source AI Roleplay and Agents Platform - No Bloat, All Power**
+> **The easiest way to chat, roleplay, and build AI agents on your own server. Clean, fast, and simple.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Fastify](https://img.shields.io/badge/Fastify-5.x-blue.svg)](https://www.fastify.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+ORC is a lightweight, beautiful web application for personal roleplaying and chatting with AI. You can create custom characters, give them unique personalities, and even let them write files or generate images for you.
 
----
-
-> "A solid move against the bloat. Repo looks clean—great stack for quick setups." — **Grok (xAI)**
-
-## 🎯 **Why Open Roleplay Chat (ORC)?**
-
-**The Problem:** Most AI tools require 2GB Docker images, complex configurations, and 50+ setup steps.
-
-**Our Solution:** A **lightning-fast**, self-hosted, open-source platform that gets you roleplaying in **under 5 minutes**.
-
-See **Quick Start** section below for detailed installation instructions.
-
-## 🚀 **Powerful Features**
-
-### 🧠 **Advanced Memory System (RAG)**
-
-- **Long-term Vector Memory** - Powered by `sqlite-vec` for storing and retrieving facts
-- **Semantic Search** - AI retrieves relevant memories based on conversation context
-- **Smart Fact Extraction** - Automatically extracts key information before cleaning history
-- **Explicit Commands** - Manually save facts using "Remember: [fact]" or "Запомни: [факт]"
-- **Infinite Context** - Never truly "forgets" important details, even after history cleanup
-
-### 📚 **Lorebooks & World Info**
-
-- **Dynamic Keyword Triggering** - Lore entries inject into system context *only* when trigger keywords appear in the conversation window.
-- **Modular Character Bindings** - Bind one or multiple Lorebooks to any character card.
-- **SillyTavern & Chub Interoperability** - Full 1-click import & export for standard SillyTavern / Chub.ai World Info JSON files.
-- **Token & Cost Efficiency** - Minimizes prompt token overhead while providing massive background world knowledge.
-
-### 💬 **Smart Chat System**
-
-- **Real-time Streaming** - Watch AI responses appear word by word with SSE
-- **Multi-User Support** - Each user gets isolated chat histories
-- **Smart Context Management** - Auto-summarization when history gets long
-- **Vision Support** - Upload images for AI to analyze
-
-### 🎭 **Character Management**
-
-- **Visual Dashboard** - No JSON editing required
-- **Full Customization** - Personality, scenario, temperature, tokens, tools, Reasoning
-- **Avatar Support** - Custom character images
-- **Quick Switching** - Jump between characters instantly
-
-### 🎨 **AI Image Generation**
-
-- **FLUX Model** - High-quality image generation via Together AI
-- **Aspect Ratios** - Perfect for any use case
-- **Advanced Controls** - Steps, guidance scale, reference images
-- **Local Storage** - All images saved on your server
-
-### 🛠️ **Agent Tools**
-
-- **File Operations** - AI can create and read text files
-- **Image Generation** - Generate images on demand
-- **Sandbox Security** - All operations isolated in safe environment
-- **Toggle Control** - Enable/disable tools per character
+For developers and advanced users, check the technical guide: **[Technical Documentation & Settings (DOCS.md)](DOCS.md)**.
 
 ---
 
-## 🎯 **Use Cases**
+## ✨ Features (Explained Simply)
 
-### **Perfect For:**
-
-- **Roleplaying Enthusiasts** - Create and manage AI characters
-- **Writers & Storytellers** - Develop characters and dialogue
-- **Developers** - AI-powered coding assistants
-- **Educators** - Interactive teaching characters
-- **Privacy-Conscious Users** - 100% local control
-
-### **Not For:**
-
-- **Mobile-Only Users** - Requires self-hosting
-- **No-Tech Users** - Basic setup required
-- **Enterprise Scale** - Designed for small teams/personal use
-
----
-### Screenshots
-
-<img width="1272" height="897" alt="Image" src="https://github.com/user-attachments/assets/7a397f6e-2ded-4652-a829-5cf3f42288b8" />
-
-<img width="1271" height="898" alt="Image" src="https://github.com/user-attachments/assets/f680bd62-7cdf-4513-80db-673113c58928" />
-
-<img width="1267" height="898" alt="Image" src="https://github.com/user-attachments/assets/1f68cccc-1da8-42bc-a010-d04c8cff174b" />
-
-<img width="1225" height="891" alt="Image" src="https://github.com/user-attachments/assets/e4e6ead0-f925-46ff-9d90-2a4e2c467b3a" />
-
-<img width="1222" height="897" alt="Image" src="https://github.com/user-attachments/assets/e057118a-8188-4656-997f-4442b2231f29" />
-
-
-
----
-## 🚀 **Quick Start**
-
-
-### **1. Install Dependencies**
-
-```bash
-npm install
-```
-
-### **2. Configure Environment**
-
-```bash
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### **3. Setup Database**
-
-```bash
-npm run db:reset    # Create fresh database
-npm run db:seed     # Add admin user + sample characters
-```
-
-### **4. Launch**
-
-```bash
-# Development (hot-reload)
-npm run dev
-
-# Production
-npm run build && npm run start
-```
-
-**🎉 Visit:** `http://localhost:3000`
-
-
-### Default Login - created by db:seed
-- **Email**: admin@example.com
-- **Password**: 12345678
+- **🧠 Long-Term Memory**: Characters actually remember facts about you and the story. No more "forgetting" what you discussed 10 messages ago!
+- **📚 Lorebooks (World Info)**: Attach deep background lore, faction details, or locations dynamically injected via keyword triggers (fully compatible with SillyTavern / Chub JSON formats).
+- **💬 Real-Time Chat**: Messages stream in word-by-word, just like talking to a real person.
+- **🎭 Visual Character Catalog**: Easily add, edit, or delete characters directly from your browser. Upload custom avatars, write scenarios, and customize behavior without editing code.
+- **🎨 AI Image Generator**: Ask the AI to paint a picture, or generate images manually with direct aspect ratio controls.
+- **🛠️ AI Tools (Agents)**: Give characters the ability to create text files or paint pictures in a safe sandbox folder.
+- **📱 Telegram Bot Support**: Talk to Natalia or your custom assistants right inside Telegram (optional setup).
 
 ---
 
-## ⚙️ **Configuration**
-### **Required Variables**
+## 🚀 Quick Start (For Everyone)
 
-```env
-NODE_ENV=development
-LOGGING_DEBUG=true
-DEBUG_REQUESTS=true
-AI_DEBUG_LOGS=true
+Setting up Open Roleplay Chat takes less than 5 minutes. Just follow these steps:
 
-# auth secret token
-JWT_SECRET=your_jwt_secret_at_least_32_chars_long
-
-#AI Model API
-API_KEY=your_openrouter_api_key
-API_URL=https://openrouter.ai/api/v1/chat/completions
-AI_DEFAULT_MODEL=qwen/qwen3-vl-235b-a22b-instruct
-AI_EMBEDDING_MODEL=qwen/qwen3-embedding-8b
-
-## alternative
-TOGETHER_API_KEY=
-TOGETHER_IMAGE_API_URL=https://api.together.xyz/v1/images/generations
-TOGETHER_IMAGE_MODEL=black-forest-labs/FLUX.2-dev
-
-XAI_API_KEY=
-
-# Telegram Bot Integration
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_WEBHOOK_URL=
-TELEGRAM_WEBHOOK_SECRET=secret_code_to_check_hook
-# Optional: Private mode (only these users can access)
-TELEGRAM_ALLOWED_USERS=
-# Optional: Admin users (can manage bot via API)
-TELEGRAM_ADMIN_USERS=
-# Optional: Features (disabled by default for security)
-TELEGRAM_ENABLE_IMAGES=false
-TELEGRAM_ENABLE_VOICE=false
-# Optional: Character settings
-TELEGRAM_DEFAULT_CHARACTER_ID=1
-# Optional: Rate limiting
-TELEGRAM_RATE_LIMIT_PER_USER=30
-TELEGRAM_RATE_LIMIT_WINDOW=60
-
-# TELEGRAM_CHANNEL=
-```
-
-
----
-
-## 🏗️ **Clean Architecture**
-
-### **Backend Stack**
-
-```
-🚀 Fastify 5 (TypeScript)    → 2x faster than Express
-💾 SQLite + sqlite-vec       → Zero-config vector database
-🧠 RAG Architecture          → Long-term memory retrieval
-🔐 Session Auth              → Simple, secure authentication
-📡 SSE Streaming             → Real-time responses
-🎨 Sharp                     → Fast image processing
-```
-
-### **Frontend Stack**
-
-```
-⚡ Alpine.js 3               → Lightweight reactivity (<10KB)
-🎨 Bootstrap 5               → Professional UI components
-📝 Marked + Highlight.js     → Beautiful markdown rendering
-🛡️ DOMPurify                → XSS protection
-```
-
-### **AI Services**
-
-```
-🤖 OpenRouter API           → Access to all major AI models & Embeddings
-🎨 Together AI               → FLUX image generation
-```
----
-
-## 🎨 **UI Features**
-
-- **Cyberpunk Theme** - Modern, eye-catching design
-- **Responsive Layout** - Works on all devices
-- **Real-time Updates** - No page refreshes needed
-- **Markdown Support** - Rich text formatting
-- **Code Highlighting** - Syntax highlighting for all languages
-- **Image Previews** - Inline image display
-
----
-
-## 🤖 **AI Capabilities**
-
-### **Supported Models**
-
-- **Grok** (xAI) - Fast, conversational
-- **Claude** (Anthropic) - Advanced reasoning
-- **GPT-4** (OpenAI) - Versatile and powerful
-- **Llama** (Meta) - Open-source excellence
-- **And many more** via OpenRouter
-
-### **Agent Tools**
-
-- **File Creation** - AI can write text files
-- **File Reading** - AI can read existing files
-- **Image Generation** - Create images on demand
-- **Context Awareness** - Smart conversation management
-
----
-
-## 🔐 **Security Features**
-
-- **Session-based Authentication** - Simple, secure sessions
-- **Password Hashing** - bcrypt with 10 rounds
-- **XSS Protection** - DOMPurify sanitization
-- **Sandboxed File Operations** - AI tools restricted to safe directory
-- **CSRF Protection** - Built-in session security
-
----
-
-## 📱 **Pages & Navigation**
-
-| Route             | Description         | Features                               |
-| ----------------- | ------------------- | -------------------------------------- |
-| **`/`**           | Login & Register    | Session-based authentication           |
-| **`/chat`**       | Main Chat Interface | Real-time SSE streaming, image uploads |
-| **`/characters`** | Character Dashboard | Full CRUD management, avatars          |
-| **`/lorebooks`**  | Lorebooks Manager   | World info, triggers, SillyTavern JSON import/export |
-| **`/image-gen`**  | Image Generator     | FLUX model, aspect ratios, controls    |
-
----
-
-### **Configuration**
-
-Add these variables to your `.env` file:
-
-```env
-# Admin users who can use /post command
-TELEGRAM_ADMIN_USERS=123456789,987654321
-
-# Allowed channels (optional - restrict posting to specific channels)
-TELEGRAM_ALLOWED_CHANNELS=@mychannel,@anotherchannel
-
-# Default channel for quick posting
-TELEGRAM_DEFAULT_CHANNEL=@mychannel
-```
-
-### **Setup Requirements**
-
-1. **Bot Permissions**
-   - Add bot as administrator to target channels/groups
-   - Enable "Post Messages" permission
-   - For channels: bot must be admin with post rights
-   - For groups: bot needs "Can post messages" permission
-
-2. **Channel Identifiers**
-   - Use `@channelname` for public channels
-   - Use chat ID (numeric) for private groups/channels
-   - Get chat ID by adding bot to group and using `/start`
-
-3. **Security Best Practices**
-   - Always restrict admin users with `TELEGRAM_ADMIN_USERS`
-   - Use `TELEGRAM_ALLOWED_CHANNELS` to limit posting destinations
-   - Set a default channel to prevent accidental posts
-
----
-
-## 🧠 **Technical Deep Dive**
-
-### **AI Chat Engine & Lorebook Context Injection**
-
-```typescript
-User Prompt + Conversation History → Lorebook Keyword Engine → Injected [World & Setting Lore]
-User Message → Vector Search (sqlite-vec) → Relevant Facts → System Prompt Injection
-Context Builder → Fact Extraction → Vector Storage → History Cleanup
-```
-
-### **Image Generation Pipeline**
-
-```typescript
-User Prompt → Together AI → FLUX Model → Image Download → Local Storage
-Aspect Ratio → Pixel Optimization → Sharp Processing → Static Serving
-```
-
-### **Database Schema**
-
-```sql
-users              → Authentication & profiles
-characters         → AI personalities & settings
-messages           → Chat history with metadata
-lorebooks          → World info collections
-lorebook_entries   → Keyword-triggered lore facts & rules
-character_lorebooks→ Junction table binding lorebooks to characters
-```
-
----
-
-
-## 📱 **Telegram Bot Integration**
-
-### **Chat with AI Characters on Telegram**
-
-AI Character Chat includes a full-featured Telegram bot that allows users to interact with AI characters directly through Telegram.
-
-#### **Key Features**
-
-- **Multi-character Support** - Switch between different AI personalities
-- **Long-term Memory** - AI remembers important facts across conversations  
-- **Command System** - Bot commands for character management
-- **Real-time Processing** - Instant responses via webhooks
-- **Security** - Whitelist support and admin controls
-
-#### **Available Commands**
-
-```
-/start     - Welcome message and getting started
-/help      - Show help information
-/characters - List all available AI characters
-/character [name] - Select specific character
-/reset     - Clear conversation history
-/post [channel] message - Post message to channel (admin only)
-/status    - Show current character and status
-/memory    - Display memory system information
-```
-
-#### **Setup Instructions**
-
-1. **Create Telegram Bot**
-   - Talk to `@BotFather` on Telegram
-   - Create a new bot and save the token
-
-2. **Configure Environment**
-   - Refer to the **Configuration** section for setup instructions
-   - Add the following variables to your `.env` file:
-     ```env
-     TELEGRAM_BOT_TOKEN=your_bot_token_here
-     TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook/telegram
-     TELEGRAM_WEBHOOK_SECRET=your_webhook_secret
-     ```
-   - Optional: Restrict access to specific users
-     ```env
-     TELEGRAM_ALLOWED_USERS=123456789,987654321
-     ```
-
-3. **Start Server**
+### **1. Download and Install**
+1. Download this project folder to your computer.
+2. Open your terminal/command prompt in the project folder and run:
    ```bash
-   npm run dev
-   # Telegram adapter auto-initializes when configured
+   npm install
    ```
 
-#### **API Endpoints**
+### **2. Launch the App**
+Start the local server by running:
+   ```bash
+   npm run dev
+   ```
 
-- `POST /webhook/telegram` - Telegram webhook endpoint
-- `GET /webhook/telegram/health` - Health check status
-- `POST /webhook/telegram/set` - Set webhook URL (admin)
-- `POST /webhook/telegram/send` - Send test message (admin)
+### **3. Setup in Your Browser**
+1. Open your browser and go to: **`http://localhost:3000`**
+2. **Step 1 (Settings)**: Enter your OpenRouter API key (you can get one at [openrouter.ai](https://openrouter.ai/)).
+3. **Step 2 (Database Initialization)**: Click the **"INITIALIZE DATABASE"** button. This will automatically structure the application and create your characters.
+4. **Log In**: Click **"GO TO LOGIN"** and log in using the default credentials:
+   - **Email**: `admin@example.com`
+   - **Password**: `12345678`
 
-#### **Detailed Setup**
-
-For complete Telegram bot setup instructions, troubleshooting, and advanced configuration, see: **[TELEGRAM_SETUP.md](TELEGRAM_SETUP.md)**
-
----
-
-##  **Telegram Channel Posting**
-
-### **Post Messages to Channels and Groups**
-
-AI Character Chat allows AI characters and admins to post messages directly to Telegram channels and groups.
-
-#### **Key Features**
-
-- **AI-Generated Posts** - AI characters can create and post content to channels
-- **Admin Control** - Only admins can use the `/post` command manually
-- **Channel Restrictions** - Configure allowed channels for security
-- **HTML Formatting** - Support for rich text formatting in posts
-- **Default Channel** - Set a default channel for quick posting
-
-#### **AI Tool Integration**
-
-The `post_to_telegram_channel` tool is available to AI characters when enabled:
-
-```typescript
-// AI can automatically post updates, announcements, or content
-await post_to_telegram_channel({
-  message: "Hello everyone! Here's today's update... <b>Important news</b>",
-  channel: "@mychannel" // optional, uses default if not specified
-});
-```
-
-#### **Admin Commands**
-
-```
-/post @channelname Hello everyone! - Post to specific channel
-/post Hello everyone! - Post to default channel
-/post @channelname <b>Bold text</b> and <i>italic</i> - HTML formatting
-```
-
-
-## 🛠️ **Development**
-
-### **Tech Stack Details**
-
-- **Backend**: Fastify 5 + TypeScript + SQLite
-- **Frontend**: Alpine.js 3 + Bootstrap 5 + Vanilla JS
-- **AI**: OpenRouter + Together AI
-- **Images**: Sharp + FLUX
-- **Auth**: Session-based + bcrypt
-
-### **Key Architectural Decisions**
-
-- **SQLite over PostgreSQL** - Zero config, perfect for self-hosting
-- **Sessions over JWT** - Simpler, more secure for this use case
-- **Alpine.js over React** - Lightweight, no build step needed
-- **Fastify over Express** - 2x performance, better TypeScript support
+*Note: You can easily change this email and password in your Profile Settings once you log in!*
 
 ---
 
-## 🤝 **Contributing**
+## 📸 Screenshots
 
-We welcome contributions! Here's how to get started:
+<img width="1272" height="897" alt="Chat Interface" src="https://github.com/user-attachments/assets/7a397f6e-2ded-4652-a829-5cf3f42288b8" />
 
-1. **Fork the repository**
-2. **Make your changes**
-3. **Test thoroughly**: `npm run test`
-4. **Submit a pull request**
+<img width="1271" height="898" alt="Characters Management" src="https://github.com/user-attachments/assets/f680bd62-7cdf-4513-80db-673113c58928" />
 
-### **Development Guidelines**
-
-- Follow existing code style
-- Add TypeScript types for new features
-- Update documentation
-- Test with multiple AI models
+<img width="1267" height="898" alt="Image Generation Panel" src="https://github.com/user-attachments/assets/1f68cccc-1da8-42bc-a010-d04c8cff174b" />
 
 ---
 
-## ⚡ **Why Open Roleplay Chat?**
+## 🛠️ Advanced Settings & Development
 
-| Feature            | Open Roleplay Chat | SillyTavern     | Character.AI      |
-| ------------------ | ----------------- | --------------- | ----------------- |
-| **Setup Time**     | 5 minutes         | 30+ minutes     | Instant (cloud)   |
-| **Installation**   | 3 commands        | Docker + config | Web only          |
-| **Resource Usage** | ~100MB RAM        | 2GB+ Docker     | N/A               |
-| **Local Control**  | ✅ Full control   | ✅ Full control | ❌ Cloud only     |
-| **Customization**  | ✅ Full source    | ✅ Full source  | ❌ Limited        |
-| **Privacy**        | ✅ 100% private   | ✅ 100% private | ❌ Data collected |
-| **Startup Time**   | ~2 seconds        | 30+ seconds (Docker)  |
-| **Memory Usage**   | ~100MB            | 2GB+ (Docker)         |
-| **Disk Space**     | ~50MB             | 500MB+                |
-| **Response Latency** | <500ms            | 1000ms+               |
-| **Setup Complexity** | 3 commands        | Docker + config       |
+Need to set up the Telegram webhook, edit environment variables, check the SQLite database schema, or contribute to code?
+
+👉 Refer to **[DOCS.md](DOCS.md)** for complete technical details.
 
 ---
 
-## � **License**
+## ⭐ Support & Licensing
 
-MIT License - feel free to use this project for personal or commercial purposes.
-
----
-
-## 📞 **Support**
-
-- **Issues**: [GitHub Issues](https://github.com/nordevelopment/OpenRoleplayChat/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/nordevelopment/OpenRoleplayChat/discussions)
-
----
-
-<div align="center">
-
-**⭐ Star this repo if it helped you!**
-
-_Made by [Norayr Petrosyan](https://github.com/nordevelopment)_
-
----
-
-_Built with a touch of sarcasm and faith in a digital future._
-
-#AI #aichat #aiagents #airoleplay #GrokAI #OpenRouter #Telegram #Automation #selfhosted #opensource
-
-</div>
+- Open Roleplay Chat is licensed under the permissive **MIT License**.
+- If you run into issues, please report them on [GitHub Issues](https://github.com/nordevelopment/OpenRoleplayChat/issues).
+- **If you enjoy using ORC, please give this repository a star! ⭐**

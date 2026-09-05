@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Setup - AI Character Chat</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Orbitron:wght@400..900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/public/cybercore.css">
+    <link rel="stylesheet" href="/public/styles.css?v=<%= version %>">
+
+    <script src="/public/config.js"></script>
+    <style>
+        .setup-step {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--color-cyan);
+            letter-spacing: 1px;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .credentials-card {
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px dashed var(--color-cyan);
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: var(--space-md);
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+
+<body class="" x-data="databaseSetupApp()" x-cloak>
+
+    <div class="wrapper cyber-scanlines cyber-scanlines--scroll cyber-scanlines--fine"
+        style="height: 100vh; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: var(--space-md);">
+
+        <div class="cyber-card" style="width: 100%; max-width: 580px;">
+            <div class="cyber-card__header">
+                <div class="cyber-card__icon">//</div>
+                <h3 class="cyber-card__title">DATABASE INITIALIZATION</h3>
+            </div>
+
+            <div class="cyber-card__body">
+                <div class="setup-step">Step 2: Initialize SQLite Store</div>
+                
+                <p class="cyber-text-muted" style="font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">
+                    System configuration is complete. We now need to initialize your local database. 
+                    This will construct the database tables and seed default AI profiles ( Natalia & Assistant ).
+                </p>
+
+                <!-- Processing state -->
+                <div x-show="loading" style="display:none; text-align: center; margin: 30px 0;">
+                    <div style="font-family: 'Orbitron', sans-serif; font-size: var(--text-md); color: var(--color-cyan); animation: flicker 1s infinite; margin-bottom: 15px;">
+                        ⚙️ REBUILDING DATABASE SCHEMATIC...
+                    </div>
+                    <div style="width: 100%; background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(0,240,255,0.2);">
+                        <div style="height: 100%; background: var(--color-cyan); width: 60%; animation: pulse 1.5s infinite ease-in-out; box-shadow: 0 0 8px var(--color-cyan);"></div>
+                    </div>
+                </div>
+
+                <!-- Ready state (uninitialized) -->
+                <div x-show="!loading && !initialized" style="display: flex; flex-direction: column; gap: 15px;">
+                    <button @click="runSetup()" class="cyber-btn cyber-btn--filled cyber-btn--cyan" style="width: 100%;">
+                        INITIALIZE DATABASE
+                    </button>
+                </div>
+
+                <!-- Finished state (initialized successfully) -->
+                <div x-show="initialized" style="display:none; display: flex; flex-direction: column; gap: 15px;">
+                    <div class="cyber-alert cyber-alert--success" style="padding: 12px; font-size: 15px;">
+                        ✅ Database structured and seeded successfully!
+                    </div>
+
+                    <p style="font-size: 0.95rem; line-height: 1.5; margin-bottom: 10px;">
+                        The default system administrator credentials have been registered in the SQLite store. Use these credentials on the next screen:
+                    </p>
+
+                    <div class="credentials-card">
+                        <div style="color: var(--color-cyan); margin-bottom: 6px;">// DEFAULT LOGIN DETAILS</div>
+                        <div><strong style="color: #fff;">Identity:</strong> admin@example.com</div>
+                        <div><strong style="color: #fff;">Passcode:</strong> 12345678</div>
+                        <div style="font-size: var(--text-xs); color: var(--color-magenta); margin-top: 10px; opacity: 0.85; line-height: 1.4;">
+                            * Note: You can change this email and passcode in Profile Settings, and manage or add new roleplay characters in the Catalog after logging in.
+                        </div>
+                    </div>
+
+                    <button @click="goToLogin()" class="cyber-btn cyber-btn--filled cyber-btn--magenta cyber-mt-md" style="width: 100%;">
+                        GO TO LOGIN &rarr;
+                    </button>
+                </div>
+
+                <!-- Error message -->
+                <div x-show="errorMessage" x-text="errorMessage" class="cyber-alert cyber-alert--error cyber-mt-md" style="display:none; font-size: 14px; padding: 12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        function databaseSetupApp() {
+            return {
+                loading: false,
+                initialized: false,
+                errorMessage: '',
+
+                async runSetup() {
+                    this.loading = true;
+                    this.errorMessage = '';
+                    try {
+                        const apiBase = window.APP_CONFIG?.apiBase || '/api';
+                        const response = await fetch(`${apiBase}/setup-db/initialize`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+                        
+                        const result = await response.json();
+                        if (response.ok && result.success) {
+                            this.initialized = true;
+                        } else {
+                            this.errorMessage = result.error || 'Initialization failed.';
+                        }
+                    } catch (err) {
+                        console.error('Setup failed:', err);
+                        this.errorMessage = 'Network error occurred during database setup.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                goToLogin() {
+                    const appPrefix = window.APP_CONFIG?.appPrefix || '';
+                    window.location.href = appPrefix + '/';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

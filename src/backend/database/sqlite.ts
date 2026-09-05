@@ -74,3 +74,21 @@ export function getDB(): Database.Database {
   return db;
 }
 
+/**
+ * Checks if the database is initialized with tables and has at least one user.
+ */
+export function isDatabaseInitialized(): boolean {
+  try {
+    // We cannot use getDB() if it is not initialized yet, but it's safe because getDB() initializes it.
+    const activeDb = getDB();
+    const row = activeDb.prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='users'").get() as any;
+    if (!row || row.count === 0) return false;
+    
+    const userCount = activeDb.prepare("SELECT count(*) as count FROM users").get() as any;
+    return userCount && userCount.count > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+

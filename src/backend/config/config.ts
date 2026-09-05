@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-import path from 'path'
+import path from 'path';
+import fs from 'fs';
+
 dotenv.config();
 
 export const config = {
@@ -9,7 +11,7 @@ export const config = {
   apiUrl: process.env.API_URL || 'https://openrouter.ai/api/v1/chat/completions',
   apiKey: process.env.API_KEY || '',
 
-  aiDefaultModel: process.env.AI_DEFAULT_MODEL || '', //dont change this model
+  aiDefaultModel: process.env.AI_DEFAULT_MODEL || 'qwen/qwen3.5-flash-02-23', //dont change this model
   aiEmbeddingModel: process.env.AI_EMBEDDING_MODEL || '',
 
   imageDefaultProvider: process.env.IMAGE_DEFAULT_PROVIDER || 'xai', // 'xai' | 'together'
@@ -47,7 +49,58 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   loggingDebug: process.env.LOGGING_DEBUG === 'true',
   avatarHeight: parseInt(process.env.AVATAR_HEIGHT || '800', 10),
+
+  // Telegram fields
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  telegramWebhookUrl: process.env.TELEGRAM_WEBHOOK_URL || '',
+  telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || '',
+  telegramAdminUsers: process.env.TELEGRAM_ADMIN_USERS || '',
+  telegramAllowedUsers: process.env.TELEGRAM_ALLOWED_USERS || '',
+  telegramEnableImages: process.env.TELEGRAM_ENABLE_IMAGES === 'true',
+  telegramEnableVoice: process.env.TELEGRAM_ENABLE_VOICE === 'true',
+  telegramDefaultCharacterId: parseInt(process.env.TELEGRAM_DEFAULT_CHARACTER_ID || '1', 10),
+  telegramRateLimitPerUser: parseInt(process.env.TELEGRAM_RATE_LIMIT_PER_USER || '30', 10),
+  telegramRateLimitWindow: parseInt(process.env.TELEGRAM_RATE_LIMIT_WINDOW || '60', 10),
 };
+
+// Load dynamic config from config.json if it exists
+const configJsonPath = path.join(process.cwd(), 'config.json');
+if (fs.existsSync(configJsonPath)) {
+  try {
+    const raw = fs.readFileSync(configJsonPath, 'utf-8');
+    if (raw.trim()) {
+      const parsed = JSON.parse(raw);
+      
+      if (parsed.api_key !== undefined) config.apiKey = parsed.api_key;
+      if (parsed.api_url !== undefined) config.apiUrl = parsed.api_url;
+      if (parsed.ai_default_model !== undefined) config.aiDefaultModel = parsed.ai_default_model;
+      
+      if (parsed.together_api_key !== undefined) config.togetherApiKey = parsed.together_api_key;
+      if (parsed.together_image_model !== undefined) config.togetherImageModel = parsed.together_image_model;
+      if (parsed.xai_api_key !== undefined) config.xaiApiKey = parsed.xai_api_key;
+      
+      if (parsed.telegram_bot_token !== undefined) config.telegramBotToken = parsed.telegram_bot_token;
+      if (parsed.telegram_webhook_url !== undefined) config.telegramWebhookUrl = parsed.telegram_webhook_url;
+      if (parsed.telegram_webhook_secret !== undefined) config.telegramWebhookSecret = parsed.telegram_webhook_secret;
+      if (parsed.telegram_admin_users !== undefined) config.telegramAdminUsers = parsed.telegram_admin_users;
+      if (parsed.telegram_allowed_users !== undefined) config.telegramAllowedUsers = parsed.telegram_allowed_users;
+      if (parsed.telegram_enable_images !== undefined) config.telegramEnableImages = parsed.telegram_enable_images === true || parsed.telegram_enable_images === 'true';
+      if (parsed.telegram_enable_voice !== undefined) config.telegramEnableVoice = parsed.telegram_enable_voice === true || parsed.telegram_enable_voice === 'true';
+      if (parsed.telegram_default_character_id !== undefined) config.telegramDefaultCharacterId = parseInt(parsed.telegram_default_character_id, 10);
+      if (parsed.telegram_rate_limit_per_user !== undefined) config.telegramRateLimitPerUser = parseInt(parsed.telegram_rate_limit_per_user, 10);
+      if (parsed.telegram_rate_limit_window !== undefined) config.telegramRateLimitWindow = parseInt(parsed.telegram_rate_limit_window, 10);
+      
+      if (parsed.port !== undefined) config.port = parseInt(parsed.port, 10);
+      if (parsed.host !== undefined) config.host = parsed.host;
+      if (parsed.jwt_secret !== undefined) config.jwtSecret = parsed.jwt_secret;
+      if (parsed.logging_debug !== undefined) config.loggingDebug = parsed.logging_debug === true || parsed.logging_debug === 'true';
+      if (parsed.debug_requests !== undefined) config.debugRequests = parsed.debug_requests === true || parsed.debug_requests === 'true';
+      if (parsed.ai_debug_logs !== undefined) config.debugAi = parsed.ai_debug_logs === true || parsed.ai_debug_logs === 'true';
+    }
+  } catch (err) {
+    console.error('Failed to parse config.json:', err);
+  }
+}
 
 // MemoryService warning if embedding model is not configured
 if (!config.aiEmbeddingModel) {
@@ -58,21 +111,18 @@ if (!config.aiEmbeddingModel) {
   console.warn('='.repeat(50) + '\n');
 }
 
-const requiredEnvVars = [
-  { key: 'API_URL', value: config.apiUrl },
-  { key: 'API_KEY', value: config.apiKey },
-];
-
-const missingVars = requiredEnvVars.filter(v => !v.value);
-
-if (missingVars.length > 0) {
-  console.error('\n' + '='.repeat(50));
-  console.error('❌ [CONFIG ERROR] Missing required environment variables:');
-  missingVars.forEach(v => console.error(`   - ${v.key}`));
-  console.error('Please check your .env file.');
-  console.error('='.repeat(50) + '\n');
-
-  if (config.nodeEnv === 'production') {
-    process.exit(1);
-  }
+if (!config.apiKey) {
+  console.warn('\n' + '='.repeat(50));
+  console.warn('⚠️  [CONFIG WARNING] API_KEY is not set');
+  console.warn('   Please configure it via settings UI (in your browser) or directly in your .env file.');
+  console.warn('='.repeat(50) + '\n');
 }
+
+if (!config.apiUrl) {
+  console.warn('\n' + '='.repeat(50));
+  console.warn('⚠️  [CONFIG WARNING] API_URL is not set');
+  console.warn('   Please configure it via settings UI (in your browser) or directly in your .env file.');
+  console.warn('='.repeat(50) + '\n');
+}
+
+

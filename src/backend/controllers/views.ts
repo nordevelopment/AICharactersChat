@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { config } from '../config/config.js';
+import { isDatabaseInitialized } from '../database/sqlite.js';
 
 export async function viewsRoutes(server: FastifyInstance) {
     // Login / Index page
@@ -64,5 +66,28 @@ export async function viewsRoutes(server: FastifyInstance) {
             return reply.redirect('/');
         }
         return reply.view('lorebooks.ejs');
+    });
+
+    // System configuration settings page
+    server.get('/settings', async (request, reply) => {
+        if (config.apiKey && !request.session.user) {
+            return reply.redirect('/');
+        }
+        return reply.view('settings.ejs', {
+            isAuthenticated: !!request.session.user,
+            hasApiKey: !!config.apiKey
+        });
+    });
+
+    // Database Setup page
+    server.get('/setup-db', async (request, reply) => {
+        // If already initialized and not logged in, redirect to login
+        if (isDatabaseInitialized() && !request.session.user) {
+            return reply.redirect('/');
+        }
+        return reply.view('setup-db.ejs', {
+            isAuthenticated: !!request.session.user,
+            isInitialized: isDatabaseInitialized()
+        });
     });
 }

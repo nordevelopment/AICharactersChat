@@ -7,6 +7,9 @@ const imageService = new ImageService();
 imageService.setDefaultProvider('xai');
 
 export async function imageRoutes(fastify: FastifyInstance) {
+    // Protect all image routes
+    fastify.addHook('preHandler', fastify.authenticate);
+
     fastify.post('/api/images/generate', async (request, reply) => {
         try {
             const body = request.body as {

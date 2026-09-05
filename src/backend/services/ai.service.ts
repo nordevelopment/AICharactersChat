@@ -130,7 +130,7 @@ export class AiService {
   /**
    * Core request to AI API
    */
-  async getAiResponse(character: CharacterType, history: MessageType[], logger?: any, user?: UserType, extraMessages?: AiMessage[], imageBase64?: string) {
+  async getAiResponse(character: CharacterType, history: MessageType[], logger?: any, user?: UserType, extraMessages?: AiMessage[], processedBase64Image?: string) {
     let sys = character.system_prompt || 'Helpful assistant.';
     if (user) {
       sys = sys.replace(/{{user}}/g, user.display_name);
@@ -178,11 +178,10 @@ export class AiService {
     }
 
     // Attach image to the last user message if provided
-    if (imageBase64 && aiMessages.length > 0) {
+    if (processedBase64Image && aiMessages.length > 0) {
       const last = aiMessages[aiMessages.length - 1];
       if (last.role === 'user' && typeof last.content === 'string') {
-        const imageData = await this.processImage({ base64: imageBase64, url: '' }, logger);
-        last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: imageData.base64Image } }];
+        last.content = [{ type: 'text', text: last.content || '' }, { type: 'image_url', image_url: { url: processedBase64Image } }];
       }
     }
 
@@ -385,6 +384,8 @@ export class AiService {
       Message.add(charId, userId, { role: 'assistant', content: character.first_message }, 1);
     }
 
+    let activeProcessedImage: string | undefined = undefined;
+
     if (message !== undefined || imageBase64 !== undefined) {
       let imageFilePath: string | undefined;
 
@@ -392,6 +393,7 @@ export class AiService {
       if (imageBase64) {
         const imageData = await this.processImage({ base64: imageBase64, url: '' }, logger);
         imageFilePath = imageData.filePath;
+        activeProcessedImage = imageData.base64Image;
       }
 
       // Save message with image as Markdown if exists
@@ -419,7 +421,7 @@ export class AiService {
 
     while (iteration < MAX_ITERATIONS) {
       iteration++;
-      const response = await this.getAiResponse(character, history, logger, user, extraMessages, imageBase64);
+      const response = await this.getAiResponse(character, history, logger, user, extraMessages, activeProcessedImage);
 
       const { reply, reasoning, toolCalls } = yield* this.parseAiStream(response, character, logger, cumulativeUsage);
 
@@ -440,7 +442,7 @@ export class AiService {
 
       // Clear initial inputs for subsequent chain steps
       message = undefined;
-      imageBase64 = undefined;
+      activeProcessedImage = undefined;
     }
 
     yield { done: true };

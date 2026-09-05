@@ -23,11 +23,13 @@
             <span x-text="user.display_name || 'User'"></span>
         </button>
         <ul class="cyber-dropdown__menu">
-            <li><a :href="prefix + '/profile'" class="cyber-dropdown__item">Settings</a></li>
+            <li><a :href="prefix + '/profile'" class="cyber-dropdown__item">Profile</a></li>
+            <li><a :href="prefix + '/settings'" class="cyber-dropdown__item">System Settings</a></li>
             <li>
                 <hr class="cyber-dropdown__divider">
             </li>
             <li><button class="cyber-dropdown__item text-danger" @click="logout()">Logout</button></li>
         </ul>
+
     </div>
 </nav>

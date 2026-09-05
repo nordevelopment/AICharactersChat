@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Settings - AI Character Chat</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Orbitron:wght@400..900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/public/cybercore.css">
+    <link rel="stylesheet" href="/public/styles.css?v=<%= version %>">
+
+    <script src="/public/config.js"></script>
+    <style>
+        .settings-section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--color-cyan);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+            padding-bottom: 6px;
+            margin-top: 24px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cyber-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .cyber-grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-cyan);
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body class="<%= isAuthenticated ? 'has-navbar' : '' %>" x-data="{ ...systemSettingsApp(), prefix: window.APP_CONFIG?.appPrefix || '' }"
+    x-init="initSettings()" x-cloak>
+
+    <div class="wrapper cyber-scanlines cyber-scanlines--scroll cyber-scanlines--fine"
+        style="height: 100vh; overflow-y: auto;">
+
+        <% if (isAuthenticated) { %>
+            <!-- Head ( Navbar )  -->
+            <%- include('head_nav.ejs') %>
+        <% } else { %>
+            <!-- Minimal setup nav -->
+            <nav class="cyber-nav">
+                <span class="cyber-nav__brand">Open Roleplay Chat // Setup Mode</span>
+                <span class="cyber-status" style="margin-left: auto;">
+                    <span class="cyber-status__dot cyber-status__dot--blink" style="background-color: var(--color-magenta);"></span>
+                    <span style="color: var(--color-magenta);">UNCONFIGURED</span>
+                </span>
+            </nav>
+        <% } %>
+
+        <div style="display: flex; justify-content: center; padding: var(--space-md); margin-top: var(--space-md); margin-bottom: var(--space-xl);">
+            <div class="cyber-card" style="width: 100%; max-width: 720px;">
+                <div class="cyber-card__header">
+                    <div class="cyber-card__icon">//</div>
+                    <h3 class="cyber-card__title">System Configuration</h3>
+                </div>
+
+                <!-- Setup Warning Banner -->
+                <div id="setupWarningBanner" x-show="!hasApiKey"
+                    class="cyber-alert cyber-alert--error cyber-mb-md"
+                    style="font-family: 'JetBrains Mono', monospace; font-size: 14px; text-align: center; border-radius: 4px; padding: 12px;">
+                    ⚠️ FIRST LAUNCH SETUP: AI API Key (OpenRouter) is missing. Please configure it below to enable system operations.
+                </div>
+
+                <form @submit.prevent="saveSettings()">
+                    <!-- SECTION 1: CORE AI SETTINGS -->
+                    <div class="settings-section-title">
+                        <span>🤖 Core AI Completions</span>
+                    </div>
+
+                    <div class="cyber-field">
+                        <label class="cyber-field__label">AI API completions URL</label>
+                        <input type="text" x-model="form.apiUrl" class="cyber-input" required
+                            placeholder="https://openrouter.ai/api/v1/chat/completions">
+                    </div>
+
+                    <div class="cyber-grid-2">
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Default AI Model</label>
+                            <input type="text" x-model="form.aiDefaultModel" class="cyber-input" required
+                                placeholder="qwen/qwen3.5-flash-02-23">
+
+                        </div>
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">AI API Key (OpenRouter)</label>
+                            <input type="password" x-model="form.apiKey" class="cyber-input"
+                                :placeholder="placeholders.apiKey">
+                            <small class="cyber-text-muted" style="margin-top: 4px; display: block;">
+                                Enter new key to update, '-' to clear.
+                            </small>
+                        </div>
+                    </div>
+
+
+                    <!-- SECTION 2: IMAGE GENERATION -->
+                    <div class="settings-section-title">
+                        <span>🎨 Image Generation</span>
+                    </div>
+
+                    <div class="cyber-grid-2">
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Together AI API Key</label>
+                            <input type="password" x-model="form.togetherApiKey" class="cyber-input"
+                                :placeholder="placeholders.togetherApiKey">
+                            <small class="cyber-text-muted" style="margin-top: 4px; display: block;">Optional. Enter '-' to clear.</small>
+                        </div>
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Together Image Model</label>
+                            <input type="text" x-model="form.togetherImageModel" class="cyber-input"
+                                placeholder="black-forest-labs/FLUX.2-dev">
+                        </div>
+                    </div>
+
+                    <div class="cyber-field">
+                        <label class="cyber-field__label">X.AI API Key</label>
+                        <input type="password" x-model="form.xaiApiKey" class="cyber-input"
+                            :placeholder="placeholders.xaiApiKey">
+                        <small class="cyber-text-muted" style="margin-top: 4px; display: block;">Optional. Enter '-' to clear.</small>
+                    </div>
+
+
+                    <!-- SECTION 3: TELEGRAM INTEGRATION -->
+                    <div class="settings-section-title">
+                        <span>💬 Telegram Integration</span>
+                    </div>
+
+                    <div class="cyber-grid-2">
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Telegram Bot Token</label>
+                            <input type="password" x-model="form.telegramBotToken" class="cyber-input"
+                                :placeholder="placeholders.telegramBotToken">
+                            <small class="cyber-text-muted" style="margin-top: 4px; display: block;">Enter '-' to clear.</small>
+                        </div>
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Webhook Secret</label>
+                            <input type="password" x-model="form.telegramWebhookSecret" class="cyber-input"
+                                :placeholder="placeholders.telegramWebhookSecret">
+                            <small class="cyber-text-muted" style="margin-top: 4px; display: block;">Enter '-' to clear.</small>
+                        </div>
+                    </div>
+
+                    <div class="cyber-field">
+                        <label class="cyber-field__label">Webhook URL</label>
+                        <input type="text" x-model="form.telegramWebhookUrl" class="cyber-input"
+                            placeholder="https://your-domain.com/webhook/telegram">
+                    </div>
+
+                    <div class="cyber-grid-2">
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Admin Users (IDs, comma-separated)</label>
+                            <input type="text" x-model="form.telegramAdminUsers" class="cyber-input"
+                                placeholder="e.g. 123456789">
+                        </div>
+                        <div class="cyber-field">
+                            <label class="cyber-field__label">Allowed Users (IDs, comma-separated)</label>
+                            <input type="text" x-model="form.telegramAllowedUsers" class="cyber-input"
+                                placeholder="e.g. 123456789,987654321">
+                        </div>
+                    </div>
+
+                    <div style="margin: 16px 0; background: rgba(255, 255, 255, 0.02); padding: 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="telegramEnableImages" x-model="form.telegramEnableImages">
+                            <label for="telegramEnableImages">Enable Images in Telegram Bot</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="telegramEnableVoice" x-model="form.telegramEnableVoice">
+                            <label for="telegramEnableVoice">Enable Voice in Telegram Bot</label>
+                        </div>
+                    </div>
+
+
+                    <!-- Alerts & Messages -->
+                    <div x-show="message"
+                        :class="message?.type === 'error' ? 'cyber-alert cyber-alert--error cyber-mb-md' : 'cyber-alert cyber-alert--success cyber-mb-md'"
+                        x-text="message?.text" class="cyber-p-sm"
+                        style="display:none; font-size: var(--text-sm); padding-left: var(--space-lg); margin-top: 16px;"></div>
+
+                    <!-- Actions -->
+                    <div class="cyber-flex cyber-gap-sm cyber-mt-lg">
+                        <button type="submit" class="cyber-btn cyber-btn--filled cyber-btn--cyan"
+                            :disabled="loading">
+                            <span x-show="!loading">Save Config</span>
+                            <span x-show="loading">Saving...</span>
+                        </button>
+                        <% if (isAuthenticated) { %>
+                            <a :href="prefix + '/chat'" class="cyber-btn cyber-btn--ghost">Cancel</a>
+                        <% } %>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/public/app_settings.js?v=<%= version %>"></script>
+</body>
+
+</html>

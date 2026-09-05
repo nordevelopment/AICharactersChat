@@ -27,12 +27,12 @@
             <form @submit.prevent="submit">
                 <div class="cyber-field">
                     <label class="cyber-field__label">Identity (Email)</label>
-                    <input type="email" x-model="email" class="cyber-input" required placeholder="user@net.corp" autocomplete="username">
+                    <input type="email" x-model="email" class="cyber-input" required placeholder="admin@example.com" autocomplete="username">
                 </div>
                 
                 <div class="cyber-field cyber-mb-md">
                     <label class="cyber-field__label">Passcode</label>
-                    <input type="password" x-model="password" class="cyber-input" required placeholder="••••••••" autocomplete="current-password">
+                    <input type="password" x-model="password" class="cyber-input" required placeholder="12345678" autocomplete="current-password">
                 </div>
                 
                 <div x-show="errorMessage" x-text="errorMessage" class="cyber-alert cyber-alert--error cyber-mb-sm" style="display:none; padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-lg); font-size: var(--text-sm);"></div>

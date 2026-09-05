@@ -18,7 +18,7 @@ export class MemoryService {
      * Validate embedding dimensions and migrate if needed
      */
     async validateAndMigrate(logger?: any): Promise<void> {
-        if (!config.aiEmbeddingModel) return;
+        if (!config.aiEmbeddingModel || !config.apiKey) return;
 
         try {
             // Получаем размерность текущей модели
